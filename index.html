@@ -846,7 +846,34 @@ function ProjectDashboard({project,onSave,onBack}) {
 // ─────────────────────────────────────────────
 function App() {
   const [projects,setProjects]=useState(()=>{ try{const s=localStorage.getItem("vs_projects");return s?JSON.parse(s):[]; }catch(e){return [];} });
-  const [activeId,setActiveId]=useState(null);
+  const [activeId,setActiveId]=useState(()=>{
+    try {
+      const hash = window.location.hash;
+      if(hash && hash.startsWith("#project-")) return hash.replace("#project-","");
+    } catch(e){}
+    return null;
+  });
+
+  // Keep URL hash in sync
+  useEffect(()=>{
+    try {
+      if(activeId) window.location.hash = "project-"+activeId;
+      else window.location.hash = "";
+    } catch(e){}
+  },[activeId]);
+
+  // Listen for browser back/forward
+  useEffect(()=>{
+    const onHash = () => {
+      try {
+        const hash = window.location.hash;
+        if(hash && hash.startsWith("#project-")) setActiveId(hash.replace("#project-",""));
+        else setActiveId(null);
+      } catch(e){}
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  },[]);
 
   useEffect(()=>{ try{localStorage.setItem("vs_projects",JSON.stringify(projects));}catch(e){} },[projects]);
 
