@@ -23,9 +23,49 @@ a{color:inherit;text-decoration:none}
 const { useState, useEffect } = React;
 
 const SITE_URL = "https://vs-deployments.github.io/vsdash/";
+const API_URL = "https://script.google.com/macros/s/AKfycbx7oz6HpMBxjdarV1LOYtlLDqbq2nJJaJtjsyK10q51vVDVCk-fjSAVk3bSNkutfDI/exec";
 const slugify = s => s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 const getProjectUrl = id => SITE_URL + "#project-" + id;
 const today = () => new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+
+const api = {
+  getAll: async () => {
+    try {
+      const r = await fetch(API_URL + "?action=getAll");
+      const j = await r.json();
+      return j.success ? j.projects : [];
+    } catch(e){ return []; }
+  },
+  get: async (id) => {
+    try {
+      const r = await fetch(API_URL + "?action=get&id=" + encodeURIComponent(id));
+      const j = await r.json();
+      return j.success ? j.project : null;
+    } catch(e){ return null; }
+  },
+  save: async (project) => {
+    try {
+      await fetch(API_URL, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({action:"save", project}),
+        mode:"no-cors"
+      });
+      return true;
+    } catch(e){ return false; }
+  },
+  delete: async (id) => {
+    try {
+      await fetch(API_URL, {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({action:"delete", id}),
+        mode:"no-cors"
+      });
+      return true;
+    } catch(e){ return false; }
+  }
+};
 
 const BLANK = (clientName="", siteName="", floorName="") => ({
   id: slugify((clientName||"new")+"-"+(siteName||"site")+"-"+(floorName||""))+"-"+Date.now(),
@@ -144,7 +184,7 @@ function CopyLinkBtn({projectId}) {
 // ─────────────────────────────────────────────
 // PROJECT LIST
 // ─────────────────────────────────────────────
-function ProjectList({projects,onOpen,onCreate,onDelete}) {
+function ProjectList({projects,onOpen,onCreate,onDelete,syncing}) {
   const [showNew,setShowNew]=useState(false);
   const [name,setName]=useState("");
   const [site,setSite]=useState("");
@@ -163,6 +203,7 @@ function ProjectList({projects,onOpen,onCreate,onDelete}) {
           <div>
             <div style={{fontSize:24,fontWeight:900,color:"#fff",marginBottom:4}}>⚡ VergeSense <span style={{color:"#6366f1"}}>Deployments</span></div>
             <div style={{fontSize:12,color:"#475569"}}>All Projects · One Place</div>
+            {syncing&&<div style={{fontSize:11,color:"#6366f1"}}>⟳ Syncing to Google Sheets...</div>}
           </div>
           <button onClick={()=>setShowNew(v=>!v)} style={{background:"#4f46e5",color:"#fff",border:"none",borderRadius:12,padding:"10px 24px",fontSize:13,fontWeight:700,cursor:"pointer"}}>
             {showNew?"✕ Cancel":"+ New Project"}
@@ -845,16 +886,42 @@ function ProjectDashboard({project,onSave,onBack}) {
 // MAIN APP
 // ─────────────────────────────────────────────
 function App() {
-  const [projects,setProjects]=useState(()=>{ try{const s=localStorage.getItem("vs_projects");return s?JSON.parse(s):[]; }catch(e){return [];} });
-  const [activeId,setActiveId]=useState(()=>{
-    try {
-      const hash = window.location.hash;
-      if(hash && hash.startsWith("#project-")) return hash.replace("#project-","");
-    } catch(e){}
-    return null;
-  });
+  const [projects, setProjects] = useState([]);
+  const [activeId, setActiveId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
-  // Keep URL hash in sync
+  // Load all projects from Google Sheets on startup
+  useEffect(()=>{
+    const init = async () => {
+      setLoading(true);
+      // First load from localStorage as fast cache
+      try {
+        const cached = localStorage.getItem("vs_projects");
+        if(cached) setProjects(JSON.parse(cached));
+      } catch(e){}
+
+      // Then fetch live from Google Sheets
+      const live = await api.getAll();
+      if(live && live.length > 0) {
+        setProjects(live);
+        try { localStorage.setItem("vs_projects", JSON.stringify(live)); } catch(e){}
+      }
+
+      // Check if URL hash points to a project
+      try {
+        const hash = window.location.hash;
+        if(hash && hash.startsWith("#project-")) {
+          const id = hash.replace("#project-","");
+          setActiveId(id);
+        }
+      } catch(e){}
+      setLoading(false);
+    };
+    init();
+  },[]);
+
+  // Sync URL hash with active project
   useEffect(()=>{
     try {
       if(activeId) window.location.hash = "project-"+activeId;
@@ -875,18 +942,44 @@ function App() {
     return () => window.removeEventListener("hashchange", onHash);
   },[]);
 
-  useEffect(()=>{ try{localStorage.setItem("vs_projects",JSON.stringify(projects));}catch(e){} },[projects]);
-
-  const createProject=(clientName,siteName,floorName)=>{
-    const p=BLANK(clientName,siteName,floorName);
-    setProjects(prev=>[p,...prev]); setActiveId(p.id);
+  const createProject = async (clientName, siteName, floorName) => {
+    const p = BLANK(clientName, siteName, floorName);
+    const updated = [p, ...projects];
+    setProjects(updated);
+    try { localStorage.setItem("vs_projects", JSON.stringify(updated)); } catch(e){}
+    setSyncing(true);
+    await api.save(p);
+    setSyncing(false);
+    setActiveId(p.id);
   };
-  const saveProject=updated=>setProjects(prev=>prev.map(p=>p.id===updated.id?updated:p));
-  const deleteProject=id=>{ setProjects(prev=>prev.filter(p=>p.id!==id)); if(activeId===id)setActiveId(null); };
-  const active=projects.find(p=>p.id===activeId);
 
-  if(active) return <ProjectDashboard project={active} onSave={saveProject} onBack={()=>setActiveId(null)}/>;
-  return <ProjectList projects={projects} onOpen={setActiveId} onCreate={createProject} onDelete={deleteProject}/>;
+  const saveProject = async (updated) => {
+    const list = projects.map(p => p.id===updated.id ? updated : p);
+    setProjects(list);
+    try { localStorage.setItem("vs_projects", JSON.stringify(list)); } catch(e){}
+    await api.save(updated);
+  };
+
+  const deleteProject = async (id) => {
+    const list = projects.filter(p => p.id !== id);
+    setProjects(list);
+    try { localStorage.setItem("vs_projects", JSON.stringify(list)); } catch(e){}
+    await api.delete(id);
+    if(activeId===id) setActiveId(null);
+  };
+
+  const active = projects.find(p => p.id === activeId) || null;
+
+  if(loading) return (
+    <div style={{minHeight:"100vh",background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
+      <div style={{fontSize:32}}>⚡</div>
+      <div style={{fontSize:14,color:"#6366f1",fontWeight:700}}>Loading VergeSense Dashboard...</div>
+      <div style={{fontSize:12,color:"#334155"}}>Syncing with Google Sheets</div>
+    </div>
+  );
+
+  if(active) return <ProjectDashboard project={active} onSave={saveProject} onBack={()=>setActiveId(null)} syncing={syncing}/>;
+  return <ProjectList projects={projects} onOpen={setActiveId} onCreate={createProject} onDelete={deleteProject} syncing={syncing}/>;
 }
 
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
