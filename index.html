@@ -45,24 +45,16 @@ const api = {
   },
   save: async (project) => {
     try {
-      await fetch(API_URL, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({action:"save", project}),
-        mode:"no-cors"
-      });
-      return true;
+      const r = await fetch(API_URL + "?action=save&data=" + encodeURIComponent(JSON.stringify(project)));
+      const j = await r.json();
+      return j.success;
     } catch(e){ return false; }
   },
   delete: async (id) => {
     try {
-      await fetch(API_URL, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({action:"delete", id}),
-        mode:"no-cors"
-      });
-      return true;
+      const r = await fetch(API_URL + "?action=delete&id=" + encodeURIComponent(id));
+      const j = await r.json();
+      return j.success;
     } catch(e){ return false; }
   }
 };
