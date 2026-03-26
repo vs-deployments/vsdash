@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>VergeSense Deployment Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0f172a;color:#fff;font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
+  input,textarea,select{font-family:inherit}
+  a{color:inherit;text-decoration:none}
+  ::-webkit-scrollbar{height:4px;width:4px}
+  ::-webkit-scrollbar-track{background:#1e293b}
+  ::-webkit-scrollbar-thumb{background:#475569;border-radius:2px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const DEFAULTS = {
+  clientName:"Acme Corp", siteName:"HQ", floorName:"Floor 12", projectType:"New Deployment",
+  status:"Green", internalOwner:"Jamie Rivera",
+  salesforceLink:"https://salesforce.com/opportunity/12345",
+  siteAddress:"123 Market St, Floor 12\nSan Francisco, CA 94105",
+  shippingAddress:"456 Warehouse Blvd, Suite 3\nOakland, CA 94601",
+  shippingAttn:"Tom Bradley – Receiving Dept",
+  pocName:"Sarah Chen", pocEmail:"s.chen@acme.com", pocPhone:"(415) 555-0192",
+  orderStatus:"Shipped",
+  devices:[
+    {type:"VS-300",qty:"12",shipListLink:"https://docs.google.com/spreadsheets/d/example"},
+    {type:"VS-Gateway",qty:"2",shipListLink:""},
+  ],
+  wifiConfigRequired:"N",
+  shipped:"Y", shipCarrier:"FedEx", trackingNumber:"7489234701",
+  trackingLink:"https://fedex.com/track?id=7489234701", deliveryDate:"2026-03-25",
+  networkType:"WiFi", networkConfigIn1P:"Y",
+  coiRequired:"Y", ppe:"Hard hat, vest", unionRules:"Union labor only", workHours:"8AM - 5PM",
+  accessType:"Escort", accessName:"Tom Bradley", accessEmail:"t.bradley@acme.com",
+  accessPhone:"(415) 555-0188", accessNote:"Must coordinate 48hrs in advance.",
+  siteSurveyLink:"https://drive.google.com/file/survey123",
+  ceilingType:"Drop ceiling", mountingType:"Magnetic",
+  networkReady:"Y", powerAvailable:"Y", devicesConfigured:"Y", usbRequired:"N",
+  installerName:"VergeSense Field Team", selfInstall:"N", installDate:"2026-04-10",
+  construction:"N", addedToInstallTool:"Y", whatsappLink:"https://chat.whatsapp.com/example",
+  risks:"Escort required — coordinate 48hrs ahead\nUnion rules may affect install timeline\n1 device ID pending verification",
+  nextSteps:"Confirm install date with field team\nSchedule access with Tom Bradley\nVerify WiFi config USB shipped",
+  notes:[
+    {id:1,author:"Jamie Rivera",date:"Mar 20, 2026",text:"Client confirmed site access window is 8AM-3PM only. Coordinate with Tom 48hrs in advance.",pinned:true},
+    {id:2,author:"Sarah Chen",date:"Mar 19, 2026",text:"Gateway unit GW-002 backordered — ships separately by 3/26.",pinned:false},
+  ],
+};
+
+const SC={
+  Green:{bg:"#10b981",ring:"#34d399",dot:"#34d399",label:"On Track"},
+  Yellow:{bg:"#f59e0b",ring:"#fbbf24",dot:"#fbbf24",label:"At Risk"},
+  Red:{bg:"#ef4444",ring:"#f87171",dot:"#f87171",label:"Blocked"},
+};
+const ORDER=["Ordered","Shipped","Delivered","Client Confirmed","Installed"];
+const OCOL=["#8b5cf6","#3b82f6","#06b6d4","#f59e0b","#10b981"];
+
+const s2={
+  body:{background:"#0f172a",color:"#fff",padding:"0",margin:"0"},
+  topbar:{borderBottom:"1px solid #1e293b",padding:"16px 20px"},
+  topbarInner:{maxWidth:1100,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12},
+  statStrip:{borderBottom:"1px solid #1e293b",padding:"12px 20px"},
+  statInner:{maxWidth:1100,margin:"0 auto",display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:16},
+  banner:{padding:"12px 20px",borderBottom:"1px solid #1e293b"},
+  bannerInner:{maxWidth:1100,margin:"0 auto"},
+  tabBar:{borderBottom:"1px solid #1e293b",padding:"0 20px"},
+  tabInner:{maxWidth:1100,margin:"0 auto",display:"flex",overflowX:"auto"},
+  content:{padding:"20px",maxWidth:1100,margin:"0 auto"},
+  card:{background:"#1e293b",borderRadius:16,border:"1px solid #334155",padding:16,marginBottom:0},
+  grid2:{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:16},
+  grid3:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:12},
+  secLabel:{fontSize:11,color:"#64748b",textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:700,marginBottom:12},
+  infoRow:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"8px 0",borderBottom:"1px solid #334155",gap:16},
+  infoLabel:{fontSize:11,color:"#64748b",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em",flexShrink:0,marginTop:2},
+  infoVal:{fontSize:13,fontWeight:600,textAlign:"right"},
+  input:{background:"transparent",border:"none",borderBottom:"1px dashed #475569",color:"inherit",fontSize:13,width:"100%",outline:"none",padding:"2px 0"},
+  textarea:{background:"#334155",border:"1px solid #475569",color:"#e2e8f0",fontSize:13,width:"100%",outline:"none",padding:"8px 12px",borderRadius:8,resize:"none",fontFamily:"inherit"},
+  select:{background:"#334155",border:"1px solid #475569",color:"#fff",fontSize:13,width:"100%",outline:"none",padding:"8px 12px",borderRadius:8,fontFamily:"inherit"},
+  btn:{cursor:"pointer",border:"none",borderRadius:8,fontWeight:700,fontSize:12,padding:"6px 12px",transition:"all 0.15s"},
+  ynY:{cursor:"pointer",border:"none",borderRadius:6,fontWeight:700,fontSize:11,width:32,height:28,transition:"all 0.15s"},
+  ynN:{cursor:"pointer",border:"none",borderRadius:6,fontWeight:700,fontSize:11,width:32,height:28,transition:"all 0.15s"},
+  tag:{display:"inline-flex",alignItems:"center",padding:"2px 8px",borderRadius:6,fontSize:11,fontWeight:700},
+  avatar:{borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,flexShrink:0,background:"linear-gradient(135deg,#6366f1,#8b5cf6)"},
+};
+
+function YN({val,set}){
+  return(
+    <div style={{display:"flex",gap:4}}>
+      <button onClick={()=>set("Y")} style={{...s2.ynY,background:val==="Y"?"#10b981":"#334155",color:val==="Y"?"#fff":"#94a3b8"}}>Y</button>
+      <button onClick={()=>set("N")} style={{...s2.ynN,background:val==="N"?"#ef4444":"#334155",color:val==="N"?"#fff":"#94a3b8"}}>N</button>
+    </div>
+  );
+}
+
+function EI({value,onChange,style={}}){
+  return <input value={value} onChange={e=>onChange(e.target.value)} style={{...s2.input,...style}}/>;
+}
+
+function InfoRow({label,value,color,editMode,onChange,isLink,linkLabel}){
+  return(
+    <div style={s2.infoRow}>
+      <span style={s2.infoLabel}>{label}</span>
+      {editMode
+        ?<EI value={value} onChange={onChange} style={{color:color||"#e2e8f0",textAlign:"right"}}/>
+        :isLink&&value
+          ?<a href={value} target="_blank" rel="noreferrer" style={{...s2.infoVal,color:"#818cf8",textDecoration:"underline"}}>{linkLabel||value}</a>
+          :<span style={{...s2.infoVal,color:color||"#e2e8f0"}}>{value||"—"}</span>
+      }
+    </div>
+  );
+}
+
+function Card({children,style={}}){
+  return <div style={{...s2.card,...style}}>{children}</div>;
+}
+
+function SecLabel({children}){
+  return <div style={s2.secLabel}>{children}</div>;
+}
+
+function App(){
+  const [d,setD]=useState(DEFAULTS);
+  const [edit,setEdit]=useState(false);
+  const [tab,setTab]=useState("overview");
+  const [newNote,setNewNote]=useState("");
+  const [newAuthor,setNewAuthor]=useState("");
+  const [showAdd,setShowAdd]=useState(false);
+
+  const s=k=>v=>setD(p=>({...p,[k]:v}));
+  const sc=SC[d.status];
+  const oidx=ORDER.indexOf(d.orderStatus);
+  const readyArr=[d.networkReady,d.powerAvailable,d.devicesConfigured];
+  const finalGo=readyArr.every(x=>x==="Y");
+  const pct=Math.round(readyArr.filter(x=>x==="Y").length/3*100);
+
+  const addDev=()=>setD(p=>({...p,devices:[...p.devices,{type:"",qty:"",shipListLink:""}]}));
+  const updDev=(i,k,v)=>setD(p=>{const devs=[...p.devices];devs[i]={...devs[i],[k]:v};return{...p,devices:devs};});
+  const delDev=i=>setD(p=>({...p,devices:p.devices.filter((_,x)=>x!==i)}));
+
+  const saveNote=()=>{
+    if(!newNote.trim())return;
+    setD(p=>({...p,notes:[{id:Date.now(),author:newAuthor||"You",date:new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}),text:newNote.trim(),pinned:false},...p.notes]}));
+    setNewNote("");setNewAuthor("");setShowAdd(false);
+  };
+  const delNote=id=>setD(p=>({...p,notes:p.notes.filter(n=>n.id!==id)}));
+  const pinNote=id=>setD(p=>({...p,notes:p.notes.map(n=>n.id===id?{...n,pinned:!n.pinned}:n)}));
+  const pinned=d.notes.filter(n=>n.pinned);
+
+  const TABS=[
+    {id:"overview",label:"Overview"},
+    {id:"addresses",label:"Addresses"},
+    {id:"network",label:"Network"},
+    {id:"site",label:"Site"},
+    {id:"readiness",label:"Readiness"},
+    {id:"installation",label:"Installation"},
+    {id:"notes",label:`Notes${d.notes.length>0?` (${d.notes.length})`:""}`},
+    {id:"risks",label:"Risks & Steps"},
+  ];
+
+  const initials=name=>name.split(" ").map(n=>n[0]).join("").slice(0,2).toUpperCase();
+
+  return(
+    <div style={s2.body}>
+
+      {/* TOPBAR */}
+      <div style={s2.topbar}>
+        <div style={s2.topbarInner}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <div style={{width:12,height:12,borderRadius:"50%",background:sc.dot,boxShadow:`0 0 0 2px ${sc.ring}`}}/>
+            <div>
+              {edit?(
+                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                  <EI value={d.clientName} onChange={s("clientName")} style={{color:"#fff",fontWeight:900,fontSize:15,width:120}}/>
+                  <span style={{color:"#475569"}}>·</span>
+                  <EI value={d.siteName} onChange={s("siteName")} style={{color:"#818cf8",fontWeight:900,fontSize:15,width:120}}/>
+                  <span style={{color:"#475569"}}>·</span>
+                  <EI value={d.floorName} onChange={s("floorName")} style={{color:"#94a3b8",fontWeight:600,fontSize:13,width:90}}/>
+                </div>
+              ):(
+                <div style={{fontSize:15,fontWeight:900}}>
+                  {d.clientName} <span style={{color:"#475569",fontWeight:300,margin:"0 4px"}}>·</span>
+                  <span style={{color:"#818cf8"}}>{d.siteName}</span>
+                  {d.floorName&&<span style={{color:"#64748b",fontWeight:400,fontSize:13}}> · {d.floorName}</span>}
+                </div>
+              )}
+              <div style={{display:"flex",alignItems:"center",gap:12,marginTop:4}}>
+                <span style={{fontSize:11,color:"#475569"}}>{d.projectType}</span>
+                {edit
+                  ?<EI value={d.salesforceLink} onChange={s("salesforceLink")} style={{color:"#818cf8",fontSize:11,width:200}}/>
+                  :d.salesforceLink
+                    ?<a href={d.salesforceLink} target="_blank" rel="noreferrer" style={{fontSize:11,color:"#818cf8",textDecoration:"underline"}}>Salesforce Opp ↗</a>
+                    :<span style={{fontSize:11,color:"#334155"}}>No SF link</span>
+                }
+              </div>
+            </div>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            {pinned.length>0&&(
+              <div style={{background:"#451a03",border:"1px solid #92400e",borderRadius:8,padding:"6px 10px",fontSize:11,color:"#fcd34d",fontWeight:700}}>
+                📌 {pinned.length} pinned
+              </div>
+            )}
+            <div style={{background:sc.bg,color:"#fff",borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:900,letterSpacing:"0.05em"}}>{sc.label}</div>
+            <button onClick={()=>setEdit(e=>!e)}
+              style={{...s2.btn,background:edit?"#4f46e5":"#1e293b",color:edit?"#fff":"#94a3b8",border:`1px solid ${edit?"#6366f1":"#334155"}`}}>
+              {edit?"✏️ Done":"✏️ Edit"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* STAT STRIP */}
+      <div style={s2.statStrip}>
+        <div style={s2.statInner}>
+          {[
+            {label:"Order",val:d.orderStatus,color:"#a78bfa"},
+            {label:"Network",val:d.networkType,color:"#22d3ee"},
+            {label:"Install Date",val:d.installDate||"TBD",color:"#fbbf24"},
+            {label:"Readiness",val:pct+"%",color:finalGo?"#34d399":"#fbbf24"},
+          ].map(({label,val,color})=>(
+            <div key={label} style={{display:"flex",alignItems:"center",gap:8}}>
+              <div>
+                <div style={{fontSize:10,color:"#334155",marginBottom:2}}>{label}</div>
+                <div style={{fontSize:13,fontWeight:700,color}}>{val}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* GO/NO GO */}
+      <div style={s2.banner}>
+        <div style={s2.bannerInner}>
+          <div style={{borderRadius:12,padding:"12px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8,background:finalGo?"#052e16":"#450a0a",border:`1px solid ${finalGo?"#166534":"#7f1d1d"}`}}>
+            <div style={{display:"flex",alignItems:"center",gap:12}}>
+              <span style={{fontSize:20}}>{finalGo?"✅":"🚫"}</span>
+              <div>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.1em"}}>Installation Status</div>
+                <div style={{fontSize:17,fontWeight:900,color:finalGo?"#86efac":"#fca5a5"}}>{finalGo?"GO — Ready to Install":"NO GO — Action Required"}</div>
+              </div>
+            </div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {[["Network",d.networkReady],["Power",d.powerAvailable],["Devices",d.devicesConfigured]].map(([l,v])=>(
+                <span key={l} style={{padding:"4px 10px",borderRadius:8,fontSize:11,fontWeight:700,background:v==="Y"?"#166534":"#7f1d1d",color:"#fff"}}>{l}: {v}</span>
+              ))}
+              {d.usbRequired==="Y"&&<span style={{padding:"4px 10px",borderRadius:8,fontSize:11,fontWeight:700,background:"#78350f",color:"#fff"}}>USB: Required</span>}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* PINNED NOTES */}
+      {pinned.length>0&&(
+        <div style={{padding:"8px 20px",borderBottom:"1px solid #1e293b",background:"rgba(120,53,15,0.2)"}}>
+          <div style={{maxWidth:1100,margin:"0 auto"}}>
+            {pinned.map(n=>(
+              <div key={n.id} style={{display:"flex",gap:8,fontSize:13,marginBottom:4}}>
+                <span style={{color:"#fbbf24",flexShrink:0}}>📌</span>
+                <span style={{color:"#fef3c7"}}><strong style={{color:"#fde68a"}}>{n.author}:</strong> {n.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* TABS */}
+      <div style={s2.tabBar}>
+        <div style={s2.tabInner}>
+          {TABS.map(t=>(
+            <button key={t.id} onClick={()=>setTab(t.id)}
+              style={{padding:"12px 16px",fontSize:11,fontWeight:600,whiteSpace:"nowrap",background:"transparent",cursor:"pointer",border:"none",borderBottom:`2px solid ${tab===t.id?"#6366f1":"transparent"}`,color:tab===t.id?"#fff":"#64748b",transition:"all 0.15s"}}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* CONTENT */}
+      <div style={s2.content}>
+
+        {/* OVERVIEW */}
+        {tab==="overview"&&(
+          <div>
+            <div style={s2.grid2}>
+              {/* POC */}
+              <Card>
+                <SecLabel>👤 Point of Contact</SecLabel>
+                <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+                  <div style={{...s2.avatar,width:44,height:44,fontSize:14}}>{initials(d.pocName)}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    {edit?<EI value={d.pocName} onChange={s("pocName")} style={{color:"#fff",fontWeight:700,fontSize:14}}/>:<div style={{fontWeight:700,color:"#fff",fontSize:14}}>{d.pocName}</div>}
+                    {edit?<EI value={d.pocEmail} onChange={s("pocEmail")} style={{color:"#94a3b8",fontSize:11}}/>:<div style={{color:"#94a3b8",fontSize:11}}>{d.pocEmail}</div>}
+                  </div>
+                </div>
+                <InfoRow label="Phone" value={d.pocPhone} editMode={edit} onChange={s("pocPhone")}/>
+                <InfoRow label="Type" value={d.projectType} editMode={edit} onChange={s("projectType")}/>
+                <div style={{marginTop:12,paddingTop:12,borderTop:"1px solid #334155"}}>
+                  <div style={{...s2.secLabel,marginBottom:8}}>Project Status</div>
+                  {edit
+                    ?<div style={{display:"flex",gap:8}}>
+                      {["Green","Yellow","Red"].map(c=>(
+                        <button key={c} onClick={()=>s("status")(c)}
+                          style={{...s2.btn,flex:1,background:d.status===c?SC[c].bg:"#334155",color:"#fff",padding:"6px 0"}}>
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                    :<span style={{...s2.tag,background:sc.bg,color:"#fff",fontSize:12,padding:"4px 12px",borderRadius:20}}>{sc.label}</span>
+                  }
+                </div>
+              </Card>
+
+              {/* ORDER */}
+              <Card>
+                <SecLabel>📦 Order Progress</SecLabel>
+                <div style={{display:"flex",alignItems:"flex-start",marginBottom:20}}>
+                  {ORDER.map((step,i)=>(
+                    <div key={step} style={{display:"flex",alignItems:"center",flex:1}}>
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"center",flex:1}}>
+                        <button onClick={()=>edit&&s("orderStatus")(step)}
+                          style={{width:28,height:28,borderRadius:"50%",border:"none",cursor:edit?"pointer":"default",fontWeight:900,fontSize:11,background:i<=oidx?OCOL[i]:"#334155",color:i<=oidx?"#fff":"#64748b",display:"flex",alignItems:"center",justifyContent:"center"}}>
+                          {i<oidx?"✓":i+1}
+                        </button>
+                        <div style={{fontSize:10,marginTop:4,textAlign:"center",fontWeight:i===oidx?700:400,color:i===oidx?"#fff":"#64748b",lineHeight:1.2}}>{step}</div>
+                      </div>
+                      {i<ORDER.length-1&&<div style={{height:1,flex:1,background:i<oidx?"#6366f1":"#334155",marginBottom:16}}/>}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Device table */}
+                <div style={{borderRadius:10,overflow:"hidden",border:"1px solid #334155",marginBottom:16}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
+                    <thead>
+                      <tr style={{background:"rgba(51,65,85,0.5)"}}>
+                        {["Device Type","Qty","Ship List",""].map(h=>(
+                          <th key={h} style={{padding:"8px 12px",textAlign:"left",color:"#64748b",fontWeight:600,fontSize:10,textTransform:"uppercase",letterSpacing:"0.05em"}}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {d.devices.map((dv,i)=>(
+                        <tr key={i} style={{borderTop:"1px solid #334155"}}>
+                          <td style={{padding:"8px 12px"}}>{edit?<EI value={dv.type} onChange={v=>updDev(i,"type",v)} style={{color:"#fff",fontWeight:600}}/>:<span style={{color:"#fff",fontWeight:600}}>{dv.type}</span>}</td>
+                          <td style={{padding:"8px 12px"}}>{edit?<EI value={dv.qty} onChange={v=>updDev(i,"qty",v)} style={{color:"#22d3ee",fontWeight:700,width:40}}/>:<span style={{color:"#22d3ee",fontWeight:700}}>{dv.qty}</span>}</td>
+                          <td style={{padding:"8px 12px"}}>
+                            {edit?<EI value={dv.shipListLink} onChange={v=>updDev(i,"shipListLink",v)} style={{color:"#818cf8",fontSize:11}}/>
+                              :dv.shipListLink?<a href={dv.shipListLink} target="_blank" rel="noreferrer" style={{color:"#818cf8",textDecoration:"underline",fontSize:11}}>View Ship List ↗</a>
+                              :<span style={{color:"#334155",fontSize:11}}>—</span>}
+                          </td>
+                          <td style={{padding:"8px 12px"}}>{edit&&<button onClick={()=>delDev(i)} style={{...s2.btn,background:"transparent",color:"#475569",padding:"2px 6px",fontSize:16}} onMouseOver={e=>e.target.style.color="#ef4444"} onMouseOut={e=>e.target.style.color="#475569"}>×</button>}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {edit&&<button onClick={addDev} style={{...s2.btn,background:"transparent",color:"#818cf8",marginBottom:12,fontSize:11,padding:"4px 0"}}>+ Add device row</button>}
+
+                {/* WiFi Config */}
+                <div style={{background:"rgba(51,65,85,0.4)",borderRadius:10,padding:12}}>
+                  <div style={{...s2.secLabel,marginBottom:8}}>WiFi Configuration</div>
+                  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                    <span style={{fontSize:13,color:"#cbd5e1"}}>WiFi Config Required?</span>
+                    {edit?<YN val={d.wifiConfigRequired} set={s("wifiConfigRequired")}/>
+                      :<span style={{...s2.tag,background:d.wifiConfigRequired==="Y"?"rgba(120,53,15,0.8)":"#1e293b",color:d.wifiConfigRequired==="Y"?"#fcd34d":"#64748b",fontSize:11}}>
+                        {d.wifiConfigRequired==="Y"?"Yes — USB + Config needed":"No"}
+                      </span>}
+                  </div>
+                  {d.wifiConfigRequired==="Y"&&(
+                    <div style={{marginTop:8,background:"rgba(120,53,15,0.4)",borderRadius:8,padding:"8px 12px",fontSize:11,color:"#fcd34d"}}>
+                      ⚠️ Shipping must include USB · Order needs configs added
+                    </div>
+                  )}
+                </div>
+              </Card>
+            </div>
+
+            {/* SHIPPING */}
+            <Card style={{marginTop:16}}>
+              <SecLabel>🚚 Shipping Tracking</SecLabel>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12}}>
+                {[
+                  {label:"Shipped",key:"shipped",yn:true},
+                  {label:"Carrier",key:"shipCarrier",color:"#fff"},
+                  {label:"Est. Delivery",key:"deliveryDate",color:"#fbbf24"},
+                ].map(({label,key,color,yn})=>(
+                  <div key={label} style={{background:"rgba(51,65,85,0.4)",borderRadius:10,padding:12}}>
+                    <div style={{fontSize:11,color:"#64748b",marginBottom:6}}>{label}</div>
+                    {yn&&edit?<YN val={d[key]} set={s(key)}/>:
+                     edit?<EI value={d[key]} onChange={s(key)} style={{color:color||"#fff",fontWeight:700}}/>:
+                     yn?<div style={{fontSize:13,fontWeight:700,color:d[key]==="Y"?"#34d399":"#f87171"}}>{d[key]==="Y"?"Yes":"No"}</div>:
+                     <div style={{fontSize:13,fontWeight:700,color:color||"#fff"}}>{d[key]||"—"}</div>}
+                  </div>
+                ))}
+                <div style={{background:"rgba(51,65,85,0.4)",borderRadius:10,padding:12}}>
+                  <div style={{fontSize:11,color:"#64748b",marginBottom:6}}>Tracking #</div>
+                  {edit?(
+                    <div>
+                      <EI value={d.trackingNumber} onChange={s("trackingNumber")} style={{color:"#22d3ee",fontWeight:700,marginBottom:4}}/>
+                      <EI value={d.trackingLink} onChange={s("trackingLink")} style={{color:"#818cf8",fontSize:11}}/>
+                    </div>
+                  ):d.trackingLink
+                    ?<a href={d.trackingLink} target="_blank" rel="noreferrer" style={{fontSize:13,fontWeight:700,color:"#22d3ee",textDecoration:"underline"}}>{d.trackingNumber||"Track ↗"}</a>
+                    :<div style={{fontSize:13,fontWeight:700,color:"#22d3ee"}}>{d.trackingNumber||"—"}</div>
+                  }
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* ADDRESSES */}
+        {tab==="addresses"&&(
+          <div style={s2.grid2}>
+            {[
+              {title:"📍 Site Address",key:"siteAddress",maps:true,attn:false},
+              {title:"📦 Shipping Address",key:"shippingAddress",maps:false,attn:true},
+            ].map(({title,key,maps,attn})=>(
+              <Card key={key}>
+                <SecLabel>{title}</SecLabel>
+                <div style={{background:"rgba(51,65,85,0.4)",borderRadius:10,padding:16,marginBottom:12}}>
+                  {edit
+                    ?<textarea value={d[key]} onChange={e=>s(key)(e.target.value)} rows={3} style={{...s2.textarea,background:"transparent",border:"none",borderBottom:"1px dashed #475569",borderRadius:0,padding:"4px 0"}}/>
+                    :<div style={{color:"#fff",fontWeight:600,fontSize:13,lineHeight:1.6,whiteSpace:"pre-line"}}>{d[key]}</div>
+                  }
+                </div>
+                {attn&&(
+                  <div style={{background:"rgba(51,65,85,0.4)",borderRadius:10,padding:12,marginBottom:12}}>
+                    <div style={{fontSize:11,color:"#64748b",marginBottom:4}}>Attn / Receiving Contact</div>
+                    {edit?<EI value={d.shippingAttn} onChange={s("shippingAttn")} style={{color:"#c4b5fd",fontWeight:600}}/>:<div style={{color:"#c4b5fd",fontSize:13,fontWeight:600}}>{d.shippingAttn||"—"}</div>}
+                  </div>
+                )}
+                <div style={{display:"flex",gap:8}}>
+                  {maps&&<a href={`https://maps.google.com?q=${encodeURIComponent(d[key])}`} target="_blank" rel="noreferrer"
+                    style={{...s2.btn,flex:1,background:"#4f46e5",color:"#fff",textAlign:"center",display:"block",padding:"8px 0",borderRadius:10,fontSize:12}}>
+                    🗺️ Open in Maps
+                  </a>}
+                  <button onClick={()=>navigator.clipboard&&navigator.clipboard.writeText(d[key])}
+                    style={{...s2.btn,flex:1,background:"#334155",color:"#94a3b8",padding:"8px 0",borderRadius:10}}>
+                    📋 Copy
+                  </button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* NETWORK */}
+        {tab==="network"&&(
+          <div style={s2.grid2}>
+            <Card>
+              <SecLabel>🌐 Network Type</SecLabel>
+              {["WiFi","Ethernet","Cellular"].map(t=>(
+                <button key={t} onClick={()=>edit&&s("networkType")(t)}
+                  style={{width:"100%",padding:"12px 16px",borderRadius:10,border:`1px solid ${d.networkType===t?"#6366f1":"#334155"}`,background:d.networkType===t?"rgba(99,102,241,0.2)":"rgba(51,65,85,0.4)",color:d.networkType===t?"#fff":"#64748b",fontWeight:700,fontSize:13,textAlign:"left",cursor:edit?"pointer":"default",marginBottom:8,display:"flex",alignItems:"center",gap:10}}>
+                  {t==="WiFi"?"📶":t==="Ethernet"?"🔌":"📡"} {t}
+                  {d.networkType===t&&<span style={{marginLeft:"auto",width:8,height:8,borderRadius:"50%",background:"#818cf8"}}/>}
+                </button>
+              ))}
+            </Card>
+            <Card>
+              <SecLabel>🔐 Network Config</SecLabel>
+              <div style={{background:"rgba(51,65,85,0.4)",borderRadius:10,padding:16,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div>
+                  <div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:4}}>Config stored in 1Password</div>
+                  <div style={{fontSize:11,color:"#64748b"}}>Credentials managed in 1Password vault</div>
+                </div>
+                {edit?<YN val={d.networkConfigIn1P} set={s("networkConfigIn1P")}/>
+                  :<span style={{...s2.tag,background:d.networkConfigIn1P==="Y"?"rgba(5,46,22,0.8)":"rgba(69,10,10,0.8)",color:d.networkConfigIn1P==="Y"?"#34d399":"#f87171",padding:"6px 12px",borderRadius:8,fontSize:12}}>
+                    {d.networkConfigIn1P==="Y"?"Yes":"No"}
+                  </span>}
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* SITE */}
+        {tab==="site"&&(
+          <div style={s2.grid2}>
+            <Card>
+              <SecLabel>🏗️ Site Conditions</SecLabel>
+              <div style={s2.infoRow}>
+                <span style={s2.infoLabel}>COI Required</span>
+                {edit?<YN val={d.coiRequired} set={s("coiRequired")}/>
+                  :<span style={{...s2.infoVal,color:d.coiRequired==="Y"?"#fbbf24":"#64748b"}}>{d.coiRequired==="Y"?"Yes":"No"}</span>}
+              </div>
+              <InfoRow label="PPE" value={d.ppe} editMode={edit} onChange={s("ppe")}/>
+              <InfoRow label="Union Rules" value={d.unionRules} editMode={edit} onChange={s("unionRules")}/>
+              <div style={s2.infoRow}>
+                <span style={s2.infoLabel}>Site Survey</span>
+                {edit?<EI value={d.siteSurveyLink} onChange={s("siteSurveyLink")} style={{color:"#818cf8",textAlign:"right"}}/>
+                  :d.siteSurveyLink?<a href={d.siteSurveyLink} target="_blank" rel="noreferrer" style={{...s2.infoVal,color:"#818cf8",textDecoration:"underline"}}>View Survey ↗</a>
+                  :<span style={{...s2.infoVal,color:"#334155"}}>Not added</span>}
+              </div>
+            </Card>
+            <Card>
+              <SecLabel>🔑 Access Contact</SecLabel>
+              <div style={{display:"flex",alignItems:"center",gap:12,background:"rgba(51,65,85,0.4)",borderRadius:10,padding:12,marginBottom:16}}>
+                <div style={{...s2.avatar,width:46,height:46,fontSize:15,background:"linear-gradient(135deg,#f59e0b,#ea580c)",flexShrink:0}}>{initials(d.accessName)}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  {edit?<EI value={d.accessName} onChange={s("accessName")} style={{color:"#fff",fontWeight:700,fontSize:14}}/>:<div style={{fontWeight:700,color:"#fff"}}>{d.accessName}</div>}
+                  {edit?<EI value={d.accessEmail} onChange={s("accessEmail")} style={{color:"#94a3b8",fontSize:11}}/>:<div style={{color:"#94a3b8",fontSize:11}}>{d.accessEmail}</div>}
+                  {edit?<EI value={d.accessPhone} onChange={s("accessPhone")} style={{color:"#fbbf24",fontSize:12,fontWeight:600}}/>:<div style={{color:"#fbbf24",fontSize:12,fontWeight:600}}>{d.accessPhone}</div>}
+                </div>
+              </div>
+              <div style={{marginBottom:12}}>
+                <div style={{...s2.secLabel,marginBottom:6}}>Access Type</div>
+                {edit
+                  ?<select value={d.accessType} onChange={e=>s("accessType")(e.target.value)} style={s2.select}>
+                    <option>Badge Access</option>
+                    <option>Escort</option>
+                    <option>Other</option>
+                  </select>
+                  :<span style={{...s2.tag,background:d.accessType==="Badge Access"?"rgba(5,46,22,0.8)":d.accessType==="Escort"?"rgba(120,53,15,0.8)":"#1e293b",color:d.accessType==="Badge Access"?"#34d399":d.accessType==="Escort"?"#fcd34d":"#94a3b8",padding:"4px 12px",borderRadius:8,fontSize:12}}>
+                    {d.accessType==="Badge Access"?"🪪":d.accessType==="Escort"?"👮":"ℹ️"} {d.accessType}
+                  </span>}
+              </div>
+              <div>
+                <div style={{...s2.secLabel,marginBottom:6}}>Access Notes</div>
+                {edit
+                  ?<textarea value={d.accessNote} onChange={e=>s("accessNote")(e.target.value)} rows={3} style={s2.textarea}/>
+                  :<div style={{fontSize:13,color:"#cbd5e1",background:"rgba(51,65,85,0.4)",borderRadius:8,padding:"8px 12px"}}>{d.accessNote||"—"}</div>}
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* READINESS */}
+        {tab==="readiness"&&(
+          <div style={s2.grid2}>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              {[["Network Ready","networkReady","🌐"],["Power Available","powerAvailable","⚡"],["Devices Configured","devicesConfigured","📱"],["USB Required","usbRequired","🔌"]].map(([label,key,icon])=>{
+                const ok=d[key]==="Y";
+                const isUsb=key==="usbRequired";
+                const bg=isUsb?(ok?"rgba(120,53,15,0.6)":"rgba(30,41,59,0.8)"):ok?"rgba(5,46,22,0.8)":"rgba(69,10,10,0.8)";
+                const border=isUsb?(ok?"#92400e":"#334155"):ok?"#166534":"#7f1d1d";
+                const col=isUsb?(ok?"#fcd34d":"#64748b"):ok?"#86efac":"#fca5a5";
+                return(
+                  <div key={key} style={{borderRadius:16,border:`2px solid ${border}`,padding:20,display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center",gap:8,background:bg}}>
+                    <span style={{fontSize:32}}>{icon}</span>
+                    <div style={{fontSize:10,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:col}}>{label}</div>
+                    <div style={{fontSize:22,fontWeight:900,color:col}}>{ok?"✓":"✗"}</div>
+                    {edit&&<YN val={d[key]} set={s(key)}/>}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              <div style={{borderRadius:16,border:`2px solid ${finalGo?"#166534":"#7f1d1d"}`,padding:24,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",flex:1,background:finalGo?"rgba(5,46,22,0.8)":"rgba(69,10,10,0.8)"}}>
+                <div style={{fontSize:10,color:"rgba(255,255,255,0.4)",textTransform:"uppercase",letterSpacing:"0.1em",marginBottom:8}}>Final Status</div>
+                <div style={{fontSize:48,fontWeight:900,color:finalGo?"#86efac":"#fca5a5",marginBottom:4}}>{finalGo?"GO":"NO GO"}</div>
+                <div style={{fontSize:12,color:finalGo?"#4ade80":"#f87171",marginBottom:16}}>{finalGo?"All systems ready":"Action required"}</div>
+                <div style={{width:"100%",background:"#1e293b",borderRadius:4,height:6,marginBottom:4}}>
+                  <div style={{height:6,borderRadius:4,background:finalGo?"#10b981":"#f59e0b",width:pct+"%",transition:"width 0.3s"}}/>
+                </div>
+                <div style={{fontSize:11,color:"rgba(255,255,255,0.3)"}}>{pct}% ready</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* INSTALLATION */}
+        {tab==="installation"&&(
+          <div style={s2.grid2}>
+            <Card>
+              <SecLabel>🔧 Installation Details</SecLabel>
+              <InfoRow label="Installer / Team" value={d.installerName} editMode={edit} onChange={s("installerName")} color="#67e8f9"/>
+              <InfoRow label="Install Date" value={d.installDate} editMode={edit} onChange={s("installDate")} color="#fbbf24"/>
+              <div style={s2.infoRow}>
+                <span style={s2.infoLabel}>Self Install?</span>
+                {edit?<YN val={d.selfInstall} set={s("selfInstall")}/>:<span style={{...s2.infoVal,color:d.selfInstall==="Y"?"#34d399":"#64748b"}}>{d.selfInstall==="Y"?"Yes":"No"}</span>}
+              </div>
+              <div style={s2.infoRow}>
+                <span style={s2.infoLabel}>Construction Site?</span>
+                {edit?<YN val={d.construction} set={s("construction")}/>:<span style={{...s2.infoVal,color:d.construction==="Y"?"#fbbf24":"#64748b"}}>{d.construction==="Y"?"Yes — Active":"No"}</span>}
+              </div>
+              <div style={s2.infoRow}>
+                <span style={s2.infoLabel}>Added to Install Tool?</span>
+                {edit?<YN val={d.addedToInstallTool} set={s("addedToInstallTool")}/>:<span style={{...s2.infoVal,color:d.addedToInstallTool==="Y"?"#34d399":"#f87171"}}>{d.addedToInstallTool==="Y"?"Yes":"No"}</span>}
+              </div>
+              <InfoRow label="Ceiling Type" value={d.ceilingType} editMode={edit} onChange={s("ceilingType")}/>
+              <InfoRow label="Mounting Type" value={d.mountingType} editMode={edit} onChange={s("mountingType")}/>
+              <InfoRow label="Work Hours" value={d.workHours} editMode={edit} onChange={s("workHours")}/>
+            </Card>
+            <Card>
+              <SecLabel>💬 Team Communication</SecLabel>
+              <div style={{background:"rgba(51,65,85,0.4)",borderRadius:10,padding:16,marginBottom:12}}>
+                <div style={{fontSize:11,color:"#64748b",marginBottom:8}}>WhatsApp Project Chat</div>
+                {edit
+                  ?<EI value={d.whatsappLink} onChange={s("whatsappLink")} style={{color:"#4ade80"}}/>
+                  :d.whatsappLink
+                    ?<a href={d.whatsappLink} target="_blank" rel="noreferrer"
+                        style={{display:"flex",alignItems:"center",gap:8,background:"rgba(5,46,22,0.6)",border:"1px solid #166534",borderRadius:10,padding:"10px 16px",color:"#4ade80",fontWeight:700,fontSize:13,textDecoration:"none"}}>
+                        <span style={{fontSize:20}}>💬</span> Open WhatsApp Chat ↗
+                      </a>
+                    :<span style={{color:"#334155",fontSize:13}}>No WhatsApp link added</span>
+                }
+              </div>
+              {d.construction==="Y"&&(
+                <div style={{background:"rgba(120,53,15,0.4)",border:"1px solid #92400e",borderRadius:10,padding:12,marginBottom:12}}>
+                  <div style={{color:"#fcd34d",fontSize:12,fontWeight:700,marginBottom:4}}>⚠️ Active Construction Site</div>
+                  <div style={{color:"#fde68a",fontSize:11}}>Confirm PPE requirements and restricted areas before scheduling install team.</div>
+                </div>
+              )}
+              {d.selfInstall==="Y"&&(
+                <div style={{background:"rgba(67,56,202,0.3)",border:"1px solid #4338ca",borderRadius:10,padding:12}}>
+                  <div style={{color:"#a5b4fc",fontSize:12,fontWeight:700,marginBottom:4}}>ℹ️ Self Installation</div>
+                  <div style={{color:"#c7d2fe",fontSize:11}}>Client is handling installation. Confirm they have hardware, instructions, and access to install tool.</div>
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+
+        {/* NOTES */}
+        {tab==="notes"&&(
+          <div style={{maxWidth:700}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:16}}>
+              <div style={s2.secLabel}>Project Notes</div>
+              <button onClick={()=>setShowAdd(v=>!v)} style={{...s2.btn,background:"#4f46e5",color:"#fff",padding:"6px 14px"}}>{showAdd?"✕ Cancel":"+ Add Note"}</button>
+            </div>
+            {showAdd&&(
+              <Card style={{marginBottom:12}}>
+                <input value={newAuthor} onChange={e=>setNewAuthor(e.target.value)} placeholder="Your name (optional)"
+                  style={{width:"100%",background:"#334155",border:"1px solid #475569",color:"#fff",fontSize:12,borderRadius:8,padding:"8px 12px",outline:"none",marginBottom:8,fontFamily:"inherit"}}/>
+                <textarea value={newNote} onChange={e=>setNewNote(e.target.value)} placeholder="Type your note..." rows={3} style={{...s2.textarea,marginBottom:8}}/>
+                <button onClick={saveNote} style={{...s2.btn,background:"#4f46e5",color:"#fff",padding:"8px 16px"}}>Save Note</button>
+              </Card>
+            )}
+            {d.notes.length===0&&<div style={{textAlign:"center",color:"#334155",padding:"40px 0",fontSize:13}}>No notes yet.</div>}
+            {[...d.notes].sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0)).map(n=>(
+              <div key={n.id} style={{borderRadius:16,border:`1px solid ${n.pinned?"#92400e":"#334155"}`,padding:16,marginBottom:10,background:n.pinned?"rgba(120,53,15,0.2)":"#1e293b"}}>
+                <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:12,marginBottom:10}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{...s2.avatar,width:30,height:30,fontSize:11}}>{initials(n.author)}</div>
+                    <div>
+                      <div style={{fontSize:12,fontWeight:700,color:"#fff"}}>{n.author}</div>
+                      <div style={{fontSize:10,color:"#64748b"}}>{n.date}</div>
+                    </div>
+                    {n.pinned&&<span style={{fontSize:14}}>📌</span>}
+                  </div>
+                  <div style={{display:"flex",gap:6}}>
+                    <button onClick={()=>pinNote(n.id)} style={{...s2.btn,background:n.pinned?"rgba(120,53,15,0.6)":"#334155",color:n.pinned?"#fcd34d":"#94a3b8",padding:"4px 10px",fontSize:11}}>
+                      {n.pinned?"Unpin":"Pin"}
+                    </button>
+                    <button onClick={()=>delNote(n.id)} style={{...s2.btn,background:"#334155",color:"#94a3b8",padding:"4px 10px",fontSize:11}}>Delete</button>
+                  </div>
+                </div>
+                <div style={{fontSize:13,color:"#cbd5e1",lineHeight:1.6}}>{n.text}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* RISKS */}
+        {tab==="risks"&&(
+          <div style={s2.grid2}>
+            {[["⚠️ Risks & Notes","risks","#fbbf24"],["🎯 Next Steps","nextSteps","#818cf8"]].map(([title,key,arrowColor])=>(
+              <Card key={key}>
+                <SecLabel>{title}</SecLabel>
+                {edit
+                  ?<textarea value={d[key]} onChange={e=>s(key)(e.target.value)} rows={10} style={s2.textarea}/>
+                  :<div>{d[key].split("\n").filter(Boolean).map((line,i)=>(
+                    <div key={i} style={{display:"flex",alignItems:"flex-start",gap:8,background:"rgba(51,65,85,0.4)",borderRadius:8,padding:"8px 12px",marginBottom:6}}>
+                      <span style={{color:arrowColor,fontSize:10,marginTop:3,flexShrink:0}}>▸</span>
+                      <span style={{fontSize:13,color:"#cbd5e1"}}>{line.replace(/^[•\-]\s*/,"")}</span>
+                    </div>
+                  ))}</div>
+                }
+              </Card>
+            ))}
+          </div>
+        )}
+
+      </div>
+      <div style={{textAlign:"center",fontSize:11,color:"#1e293b",padding:"24px 0"}}>VergeSense Deployment Dashboard · Internal Use Only</div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
