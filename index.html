@@ -445,8 +445,19 @@ function ProjectDashboard({project,onSave,onBack,syncing}) {
               {edit&&<button onClick={()=>s("lastUpdated")(today())} style={{marginTop:4,background:"#334155",border:"none",color:"#94a3b8",borderRadius:6,padding:"3px 8px",fontSize:10,cursor:"pointer"}}>Today</button>}
             </div>
           </div>
+          {/* Salesforce Link */}
+          <div style={{marginTop:12,background:"rgba(56,189,248,0.08)",borderRadius:10,padding:"10px 14px",border:"1px solid rgba(56,189,248,0.2)"}}>
+            <div style={{fontSize:10,color:"#38bdf8",fontWeight:700,textTransform:"uppercase",marginBottom:4}}>☁️ Salesforce Opportunity</div>
+            {edit
+              ? <EI value={d.salesforceLink} onChange={s("salesforceLink")} style={{color:"#38bdf8",fontSize:13}} placeholder="Paste Salesforce Opportunity URL..."/>
+              : d.salesforceLink
+                ? <a href={d.salesforceLink} target="_blank" rel="noreferrer" style={{fontSize:13,color:"#38bdf8",textDecoration:"underline",fontWeight:600}}>Open in Salesforce ↗</a>
+                : <div style={{fontSize:13,color:"#334155"}}>No Salesforce link added</div>
+            }
+          </div>
+
           {/* Next Milestone */}
-          <div style={{marginTop:12,background:"rgba(99,102,241,0.08)",borderRadius:10,padding:"10px 14px",border:"1px solid rgba(99,102,241,0.15)"}}>
+          <div style={{marginTop:10,background:"rgba(99,102,241,0.08)",borderRadius:10,padding:"10px 14px",border:"1px solid rgba(99,102,241,0.15)"}}>
             <div style={{fontSize:10,color:"#6366f1",fontWeight:700,textTransform:"uppercase",marginBottom:4}}>🎯 Next Milestone</div>
             {edit?<EI value={d.nextMilestone} onChange={s("nextMilestone")} style={{color:"#e2e8f0",fontSize:13}} placeholder="e.g. Client confirmation by Friday..."/>
                  :<div style={{fontSize:13,color:"#e2e8f0",fontWeight:500}}>{d.nextMilestone||"No milestone set"}</div>}
