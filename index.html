@@ -887,27 +887,39 @@ function App() {
   useEffect(()=>{
     const init = async () => {
       setLoading(true);
-      // First load from localStorage as fast cache
+
+      // Check hash immediately before any async work
+      let hashId = null;
       try {
-        const cached = localStorage.getItem("vs_projects");
-        if(cached) setProjects(JSON.parse(cached));
+        const hash = window.location.hash;
+        if(hash && hash.startsWith("#project-")) {
+          hashId = hash.replace("#project-","");
+        }
       } catch(e){}
 
-      // Then fetch live from Google Sheets
+      // Load from Google Sheets
       const live = await api.getAll();
       if(live && live.length > 0) {
         setProjects(live);
         try { localStorage.setItem("vs_projects", JSON.stringify(live)); } catch(e){}
+        // If we have a hash ID and the project exists in the data, open it
+        if(hashId && live.find(p => p.id === hashId)) {
+          setActiveId(hashId);
+        }
+      } else {
+        // Fall back to localStorage cache
+        try {
+          const cached = localStorage.getItem("vs_projects");
+          if(cached) {
+            const list = JSON.parse(cached);
+            setProjects(list);
+            if(hashId && list.find(p => p.id === hashId)) {
+              setActiveId(hashId);
+            }
+          }
+        } catch(e){}
       }
 
-      // Check if URL hash points to a project
-      try {
-        const hash = window.location.hash;
-        if(hash && hash.startsWith("#project-")) {
-          const id = hash.replace("#project-","");
-          setActiveId(id);
-        }
-      } catch(e){}
       setLoading(false);
     };
     init();
