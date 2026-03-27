@@ -30,66 +30,41 @@ const today = () => new Date().toLocaleDateString("en-US",{month:"short",day:"nu
 
 const api = {
   getAll: async () => {
-    try {
-      const r = await fetch(API_URL + "?action=getAll");
-      const j = await r.json();
-      return j.success ? j.projects : [];
-    } catch(e){ return []; }
-  },
-  get: async (id) => {
-    try {
-      const r = await fetch(API_URL + "?action=get&id=" + encodeURIComponent(id));
-      const j = await r.json();
-      return j.success ? j.project : null;
-    } catch(e){ return null; }
+    try { const r=await fetch(API_URL+"?action=getAll"); const j=await r.json(); return j.success?j.projects:[]; } catch(e){ return []; }
   },
   save: async (project) => {
-    try {
-      const r = await fetch(API_URL + "?action=save&data=" + encodeURIComponent(JSON.stringify(project)));
-      const j = await r.json();
-      return j.success;
-    } catch(e){ return false; }
+    try { const r=await fetch(API_URL+"?action=save&data="+encodeURIComponent(JSON.stringify(project))); return true; } catch(e){ return false; }
   },
   delete: async (id) => {
-    try {
-      const r = await fetch(API_URL + "?action=delete&id=" + encodeURIComponent(id));
-      const j = await r.json();
-      return j.success;
-    } catch(e){ return false; }
+    try { await fetch(API_URL+"?action=delete&id="+encodeURIComponent(id)); return true; } catch(e){ return false; }
   }
 };
 
 const BLANK = (clientName="", siteName="", floorName="") => ({
   id: slugify((clientName||"new")+"-"+(siteName||"site")+"-"+(floorName||""))+"-"+Date.now(),
-
-  // ── LAYER 1: Executive ──
   clientName, siteName, floorName,
   projectPhase:"Pre-Install", status:"Green",
-  internalOwner:"", nextActionOwner:"", nextMilestone:"",
+  internalOwner:"", nextMilestone:"",
   installDate:"", goLiveTarget:"",
   blockerPresent:"N", blockerText:"",
   escalation:"N", lastUpdated:today(),
-
-  // ── LAYER 2: PM Control ──
   // Client deliverables
   metadataReceived:"N", floorPlansReceived:"N", networkConfirmed:"N",
-  accessApproved:"N", coiSubmitted:"N", shippingInfoConfirmed:"N",
+  coiSubmitted:"N", shippingInfoConfirmed:"N",
   // Internal deliverables
-  oppCreated:"N", hardwareOrdered:"N", markupsComplete:"N",
+  orderActivated:"N", mapDigitized:"N",
   techAssigned:"N", whatsappCreated:"N", installScheduled:"N",
   validationRequested:"N", csHandoff:"N",
   // Dates
   kickoffDate:"", lastClientTouchpoint:"", lastInternalUpdate:"",
-  // Blockers
   blockerWhat:"", blockerOwner:"", blockerSince:"",
-
-  // ── LAYER 3: Full Detail ──
+  // Layer 3
   projectType:"New Deployment", salesforceLink:"",
   pocName:"", pocEmail:"", pocPhone:"",
   orderStatus:"Ordered", devices:[], wifiConfigRequired:"N",
   siteAddress:"", shippingAddress:"", shippingAttn:"",
   shipped:"N", shipCarrier:"", trackingNumber:"", trackingLink:"", deliveryDate:"",
-  networkType:"WiFi", networkConfigIn1P:"N",
+  networkType:"WiFi", wifiConfigsReceived:"N",
   coiRequired:"N", ppe:"", unionRules:"", workHours:"",
   accessType:"Badge Access", accessName:"", accessEmail:"", accessPhone:"", accessNote:"",
   siteSurveyLink:"", ceilingType:"", mountingType:"",
@@ -108,23 +83,19 @@ const PHASES = ["Pre-Install","Kickoff","In Progress","Installing","Validation",
 const ORDER  = ["Ordered","Shipped","Delivered","Client Confirmed","Installed"];
 const OCOL   = ["#8b5cf6","#3b82f6","#06b6d4","#f59e0b","#10b981"];
 
-const YN = ({val,set,size="normal"}) => {
-  const h = size==="small" ? 22 : 28;
-  const w = size==="small" ? 26 : 32;
-  return (
-    <div style={{display:"flex",gap:3}}>
-      {["Y","N"].map(o=>(
-        <button key={o} onClick={()=>set(o)}
-          style={{width:w,height:h,borderRadius:6,border:"none",fontWeight:700,
-            fontSize:size==="small"?10:11,cursor:"pointer",
-            background:val===o?(o==="Y"?"#10b981":"#ef4444"):"#334155",
-            color:val===o?"#fff":"#94a3b8"}}>
-          {o}
-        </button>
-      ))}
-    </div>
-  );
-};
+const YN = ({val,set,size="normal"}) => (
+  <div style={{display:"flex",gap:3}}>
+    {["Y","N"].map(o=>(
+      <button key={o} onClick={()=>set(o)}
+        style={{width:size==="small"?26:32,height:size==="small"?22:28,borderRadius:6,border:"none",
+          fontWeight:700,fontSize:size==="small"?10:11,cursor:"pointer",
+          background:val===o?(o==="Y"?"#10b981":"#ef4444"):"#334155",
+          color:val===o?"#fff":"#94a3b8"}}>
+        {o}
+      </button>
+    ))}
+  </div>
+);
 
 const EI = ({value,onChange,style,placeholder}) => (
   <input value={value||""} onChange={e=>onChange(e.target.value)} placeholder={placeholder||""}
@@ -135,35 +106,28 @@ const EI = ({value,onChange,style,placeholder}) => (
 const Card = ({children,style}) => (
   <div style={{background:"#1e293b",borderRadius:16,border:"1px solid #334155",padding:16,...(style||{})}}>{children}</div>
 );
-
 const SL = ({children,color}) => (
   <div style={{fontSize:11,color:color||"#64748b",textTransform:"uppercase",letterSpacing:"0.1em",fontWeight:700,marginBottom:10}}>{children}</div>
 );
 
-const DelivCheck = ({label,val,set,editMode}) => (
-  <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",
-    padding:"5px 0",borderBottom:"1px solid #1e293b"}}>
-    <div style={{display:"flex",alignItems:"center",gap:8}}>
-      <div style={{width:16,height:16,borderRadius:4,flexShrink:0,cursor:editMode?"pointer":"default",
-        background:val==="Y"?"#10b981":"#334155",border:"1px solid "+(val==="Y"?"#10b981":"#475569"),
-        display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700}}
-        onClick={()=>editMode&&set(val==="Y"?"N":"Y")}>
-        {val==="Y"&&"✓"}
-      </div>
-      <span style={{fontSize:12,color:val==="Y"?"#94a3b8":"#cbd5e1",
-        textDecoration:val==="Y"?"line-through":"none"}}>{label}</span>
+const DelivCheck = ({label,val,set}) => (
+  <div style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid #1e293b",cursor:"pointer"}} onClick={()=>set(val==="Y"?"N":"Y")}>
+    <div style={{width:16,height:16,borderRadius:4,flexShrink:0,
+      background:val==="Y"?"#10b981":"#334155",border:"1px solid "+(val==="Y"?"#10b981":"#475569"),
+      display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#fff",fontWeight:700}}>
+      {val==="Y"&&"✓"}
     </div>
+    <span style={{fontSize:12,color:val==="Y"?"#94a3b8":"#cbd5e1",textDecoration:val==="Y"?"line-through":"none"}}>{label}</span>
   </div>
 );
 
 function CopyLinkBtn({projectId}) {
   const [copied,setCopied]=useState(false);
-  const copy = e => {
+  const copy=e=>{
     e&&e.stopPropagation();
     const url=getProjectUrl(projectId);
     const fb=()=>{const t=document.createElement("textarea");t.value=url;document.body.appendChild(t);t.select();document.execCommand("copy");document.body.removeChild(t);};
-    if(navigator.clipboard) navigator.clipboard.writeText(url).then(()=>{}).catch(fb);
-    else fb();
+    if(navigator.clipboard) navigator.clipboard.writeText(url).then(()=>{}).catch(fb); else fb();
     setCopied(true); setTimeout(()=>setCopied(false),2500);
   };
   return(
@@ -173,9 +137,7 @@ function CopyLinkBtn({projectId}) {
   );
 }
 
-// ─────────────────────────────────────────────
-// PROJECT LIST
-// ─────────────────────────────────────────────
+// ── PROJECT LIST ──
 function ProjectList({projects,onOpen,onCreate,onDelete,syncing}) {
   const [showNew,setShowNew]=useState(false);
   const [name,setName]=useState("");
@@ -195,7 +157,7 @@ function ProjectList({projects,onOpen,onCreate,onDelete,syncing}) {
           <div>
             <div style={{fontSize:24,fontWeight:900,color:"#fff",marginBottom:4}}>⚡ VergeSense <span style={{color:"#6366f1"}}>Deployments</span></div>
             <div style={{fontSize:12,color:"#475569"}}>All Projects · One Place</div>
-            {syncing&&<div style={{fontSize:11,color:"#6366f1"}}>⟳ Syncing to Google Sheets...</div>}
+            {syncing&&<div style={{fontSize:11,color:"#6366f1",marginTop:2}}>⟳ Syncing...</div>}
           </div>
           <button onClick={()=>setShowNew(v=>!v)} style={{background:"#4f46e5",color:"#fff",border:"none",borderRadius:12,padding:"10px 24px",fontSize:13,fontWeight:700,cursor:"pointer"}}>
             {showNew?"✕ Cancel":"+ New Project"}
@@ -261,7 +223,7 @@ function ProjectList({projects,onOpen,onCreate,onDelete,syncing}) {
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:10}}>
                     {[{l:"Install Date",v:p.installDate||"TBD",c:"#fbbf24"},{l:"Go-Live",v:p.goLiveTarget||"TBD",c:"#34d399"},
-                      {l:"Owner",v:p.internalOwner||"—",c:"#94a3b8"},{l:"Next Action",v:p.nextActionOwner||"—",c:"#c4b5fd"}].map(({l,v,c})=>(
+                      {l:"Owner",v:p.internalOwner||"—",c:"#94a3b8"},{l:"Phase",v:p.projectPhase||"Pre-Install",c:"#93c5fd"}].map(({l,v,c})=>(
                       <div key={l} style={{background:"#0f172a",borderRadius:8,padding:"5px 8px"}}>
                         <div style={{fontSize:9,color:"#475569",marginBottom:1}}>{l}</div>
                         <div style={{fontSize:11,fontWeight:700,color:c,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{v}</div>
@@ -293,10 +255,8 @@ function ProjectList({projects,onOpen,onCreate,onDelete,syncing}) {
   );
 }
 
-// ─────────────────────────────────────────────
-// PROJECT DASHBOARD (3-Layer)
-// ─────────────────────────────────────────────
-function ProjectDashboard({project,onSave,onBack}) {
+// ── PROJECT DASHBOARD ──
+function ProjectDashboard({project,onSave,onBack,syncing}) {
   const [d,setD]=useState(project);
   const [edit,setEdit]=useState(false);
   const [detailTab,setDetailTab]=useState("shipping");
@@ -336,30 +296,29 @@ function ProjectDashboard({project,onSave,onBack}) {
     setLinkCopied(true); setTimeout(()=>setLinkCopied(false),2500);
   };
 
-  // Deliverable progress
-  const clientDelivs = ["metadataReceived","floorPlansReceived","networkConfirmed","accessApproved","coiSubmitted","shippingInfoConfirmed"];
-  const internalDelivs = ["oppCreated","hardwareOrdered","markupsComplete","techAssigned","whatsappCreated","installScheduled","validationRequested","csHandoff"];
-  const clientPct = Math.round(clientDelivs.filter(k=>d[k]==="Y").length/clientDelivs.length*100);
-  const internalPct = Math.round(internalDelivs.filter(k=>d[k]==="Y").length/internalDelivs.length*100);
-
-  const clientDelivLabels = {metadataReceived:"Metadata received",floorPlansReceived:"Floor plans received",networkConfirmed:"Network confirmed",accessApproved:"Access approved",coiSubmitted:"COI submitted",shippingInfoConfirmed:"Shipping info confirmed"};
-  const internalDelivLabels = {oppCreated:"Opp created",hardwareOrdered:"Hardware ordered",markupsComplete:"Markups complete",techAssigned:"Tech assigned",whatsappCreated:"WhatsApp created",installScheduled:"Install scheduled",validationRequested:"Validation requested",csHandoff:"CS handoff"};
+  const clientDelivs  = {metadataReceived:"Metadata received",floorPlansReceived:"Floor plans received",networkConfirmed:"Network confirmed",coiSubmitted:"COI submitted",shippingInfoConfirmed:"Shipping info confirmed"};
+  const internalDelivs = {orderActivated:"Order activated",mapDigitized:"Map digitized",techAssigned:"Tech assigned",whatsappCreated:"WhatsApp created",installScheduled:"Install scheduled",validationRequested:"Validation requested",csHandoff:"CS handoff"};
+  const clientPct  = Math.round(Object.keys(clientDelivs).filter(k=>d[k]==="Y").length/Object.keys(clientDelivs).length*100);
+  const internalPct= Math.round(Object.keys(internalDelivs).filter(k=>d[k]==="Y").length/Object.keys(internalDelivs).length*100);
 
   const taStyle={background:"#334155",border:"1px solid #475569",color:"#e2e8f0",fontSize:13,width:"100%",outline:"none",padding:"8px 12px",borderRadius:8,resize:"none",fontFamily:"inherit"};
   const selStyle={background:"#334155",border:"1px solid #475569",color:"#fff",fontSize:13,width:"100%",outline:"none",padding:"8px 12px",borderRadius:8,fontFamily:"inherit"};
   const iRow={display:"flex",justifyContent:"space-between",alignItems:"center",padding:"7px 0",borderBottom:"1px solid #334155",gap:12};
   const iLbl={fontSize:11,color:"#64748b",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em",flexShrink:0};
 
+  // Layer 3 tabs — Site+Install combined, separate Notes tab
   const DETAIL_TABS=[
-    {id:"shipping",label:"📦 Shipping"},{id:"network",label:"🌐 Network"},
-    {id:"site",label:"🏗️ Site"},{id:"devices",label:"🖥️ Devices"},
-    {id:"notes",label:"📝 Notes"+(d.notes.length>0?" ("+d.notes.length+")":"")},
+    {id:"shipping",   label:"📦 Shipping"},
+    {id:"network",    label:"🌐 Network"},
+    {id:"site",       label:"🏗️ Site & Install"},
+    {id:"devices",    label:"🖥️ Devices"},
+    {id:"notes",      label:"📝 Notes"+(d.notes.length>0?" ("+d.notes.length+")":"")},
   ];
 
   return(
     <div style={{minHeight:"100vh",background:"#0f172a"}}>
 
-      {/* ══ GLOBAL TOPBAR ══ */}
+      {/* TOPBAR */}
       <div style={{borderBottom:"1px solid #1e293b",padding:"10px 20px",background:"#0f172a",position:"sticky",top:0,zIndex:100}}>
         <div style={{maxWidth:1200,margin:"0 auto",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:10}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
@@ -382,6 +341,7 @@ function ProjectDashboard({project,onSave,onBack}) {
             )}
           </div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+            {syncing&&<span style={{fontSize:11,color:"#6366f1"}}>⟳ Saving...</span>}
             <button onClick={copyLink} style={{background:linkCopied?"#10b981":"#0f172a",color:linkCopied?"#fff":"#818cf8",border:"1px solid "+(linkCopied?"#10b981":"#6366f1"),borderRadius:8,padding:"5px 12px",fontSize:11,fontWeight:700,cursor:"pointer",transition:"all 0.2s"}}>
               {linkCopied?"✅ Copied!":"🔗 Copy Project Link"}
             </button>
@@ -398,18 +358,13 @@ function ProjectDashboard({project,onSave,onBack}) {
 
       <div style={{maxWidth:1200,margin:"0 auto",padding:"20px"}}>
 
-        {/* ══════════════════════════════════════════
-            LAYER 1 — EXECUTIVE VIEW
-        ══════════════════════════════════════════ */}
-        <div style={{marginBottom:4}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-            <div style={{width:3,height:20,background:"#6366f1",borderRadius:2}}/>
-            <span style={{fontSize:12,fontWeight:700,color:"#6366f1",textTransform:"uppercase",letterSpacing:"0.1em"}}>Layer 1 — Executive View</span>
-            <span style={{fontSize:11,color:"#334155"}}>30-second scan</span>
-          </div>
+        {/* ── LAYER 1: EXECUTIVE ── */}
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+          <div style={{width:3,height:20,background:"#6366f1",borderRadius:2}}/>
+          <span style={{fontSize:12,fontWeight:700,color:"#6366f1",textTransform:"uppercase",letterSpacing:"0.1em"}}>Layer 1 — Executive View</span>
+          <span style={{fontSize:11,color:"#334155"}}>30-second scan</span>
         </div>
 
-        {/* Blocker / Escalation banners */}
         {(d.blockerPresent==="Y"||d.escalation==="Y")&&(
           <div style={{display:"flex",gap:10,marginBottom:12,flexWrap:"wrap"}}>
             {d.blockerPresent==="Y"&&(
@@ -429,80 +384,56 @@ function ProjectDashboard({project,onSave,onBack}) {
         )}
 
         <Card style={{marginBottom:16,background:"linear-gradient(135deg,#1e293b,#1a2540)"}}>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:12}}>
             {/* Phase */}
             <div style={{background:"rgba(99,102,241,0.1)",borderRadius:12,padding:12,border:"1px solid rgba(99,102,241,0.2)"}}>
               <div style={{fontSize:10,color:"#6366f1",fontWeight:700,textTransform:"uppercase",marginBottom:6}}>Project Phase</div>
-              {edit?(
-                <select value={d.projectPhase||"Pre-Install"} onChange={e=>s("projectPhase")(e.target.value)} style={{...selStyle,background:"transparent",border:"1px solid rgba(99,102,241,0.3)",color:"#a5b4fc",fontSize:12,padding:"4px 8px"}}>
-                  {PHASES.map(p=><option key={p}>{p}</option>)}
-                </select>
-              ):<div style={{fontSize:14,fontWeight:700,color:"#a5b4fc"}}>{d.projectPhase||"Pre-Install"}</div>}
+              {edit?<select value={d.projectPhase||"Pre-Install"} onChange={e=>s("projectPhase")(e.target.value)} style={{...selStyle,background:"transparent",border:"1px solid rgba(99,102,241,0.3)",color:"#a5b4fc",fontSize:12,padding:"4px 8px"}}>{PHASES.map(p=><option key={p}>{p}</option>)}</select>
+                   :<div style={{fontSize:14,fontWeight:700,color:"#a5b4fc"}}>{d.projectPhase||"Pre-Install"}</div>}
             </div>
-
             {/* Status */}
             <div style={{background:"rgba(99,102,241,0.1)",borderRadius:12,padding:12,border:"1px solid rgba(99,102,241,0.2)"}}>
               <div style={{fontSize:10,color:"#6366f1",fontWeight:700,textTransform:"uppercase",marginBottom:6}}>Status</div>
-              {edit
-                ?<div style={{display:"flex",gap:4}}>{["Green","Yellow","Red"].map(c=><button key={c} onClick={()=>s("status")(c)} style={{flex:1,padding:"4px 0",borderRadius:6,border:"none",fontWeight:700,fontSize:10,cursor:"pointer",background:d.status===c?SC[c].bg:"#334155",color:"#fff"}}>{c}</button>)}</div>
-                :<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:10,height:10,borderRadius:"50%",background:sc.dot}}/><span style={{fontSize:14,fontWeight:700,color:"#fff"}}>{sc.label}</span></div>}
+              {edit?<div style={{display:"flex",gap:4}}>{["Green","Yellow","Red"].map(c=><button key={c} onClick={()=>s("status")(c)} style={{flex:1,padding:"4px 0",borderRadius:6,border:"none",fontWeight:700,fontSize:10,cursor:"pointer",background:d.status===c?SC[c].bg:"#334155",color:"#fff"}}>{c}</button>)}</div>
+                   :<div style={{display:"flex",alignItems:"center",gap:8}}><div style={{width:10,height:10,borderRadius:"50%",background:sc.dot}}/><span style={{fontSize:14,fontWeight:700,color:"#fff"}}>{sc.label}</span></div>}
             </div>
-
             {/* Internal Owner */}
             <div style={{background:"rgba(99,102,241,0.1)",borderRadius:12,padding:12,border:"1px solid rgba(99,102,241,0.2)"}}>
               <div style={{fontSize:10,color:"#6366f1",fontWeight:700,textTransform:"uppercase",marginBottom:6}}>Internal Owner</div>
               {edit?<EI value={d.internalOwner} onChange={s("internalOwner")} style={{color:"#c4b5fd",fontWeight:600}} placeholder="Name"/>
                    :<div style={{fontSize:14,fontWeight:700,color:"#c4b5fd"}}>{d.internalOwner||"—"}</div>}
             </div>
-
-            {/* Next Action Owner */}
-            <div style={{background:"rgba(99,102,241,0.1)",borderRadius:12,padding:12,border:"1px solid rgba(99,102,241,0.2)"}}>
-              <div style={{fontSize:10,color:"#6366f1",fontWeight:700,textTransform:"uppercase",marginBottom:6}}>Next Action Owner</div>
-              {edit?<EI value={d.nextActionOwner} onChange={s("nextActionOwner")} style={{color:"#e2e8f0",fontWeight:600}} placeholder="Name"/>
-                   :<div style={{fontSize:14,fontWeight:700,color:"#e2e8f0"}}>{d.nextActionOwner||"—"}</div>}
-            </div>
-
             {/* Install Date */}
             <div style={{background:"rgba(99,102,241,0.1)",borderRadius:12,padding:12,border:"1px solid rgba(99,102,241,0.2)"}}>
               <div style={{fontSize:10,color:"#6366f1",fontWeight:700,textTransform:"uppercase",marginBottom:6}}>Install Date</div>
               {edit?<EI value={d.installDate} onChange={s("installDate")} style={{color:"#fbbf24",fontWeight:600}} placeholder="MM/DD/YYYY"/>
                    :<div style={{fontSize:14,fontWeight:700,color:"#fbbf24"}}>{d.installDate||"TBD"}</div>}
             </div>
-
-            {/* Go-Live Target */}
+            {/* Go-Live */}
             <div style={{background:"rgba(99,102,241,0.1)",borderRadius:12,padding:12,border:"1px solid rgba(99,102,241,0.2)"}}>
               <div style={{fontSize:10,color:"#6366f1",fontWeight:700,textTransform:"uppercase",marginBottom:6}}>Go-Live Target</div>
               {edit?<EI value={d.goLiveTarget} onChange={s("goLiveTarget")} style={{color:"#34d399",fontWeight:600}} placeholder="MM/DD/YYYY"/>
                    :<div style={{fontSize:14,fontWeight:700,color:"#34d399"}}>{d.goLiveTarget||"TBD"}</div>}
             </div>
-
             {/* Blocker */}
             <div style={{background:d.blockerPresent==="Y"?"rgba(239,68,68,0.1)":"rgba(99,102,241,0.1)",borderRadius:12,padding:12,border:"1px solid "+(d.blockerPresent==="Y"?"rgba(239,68,68,0.4)":"rgba(99,102,241,0.2)")}}>
               <div style={{fontSize:10,color:d.blockerPresent==="Y"?"#f87171":"#6366f1",fontWeight:700,textTransform:"uppercase",marginBottom:6}}>🚨 Blocker</div>
-              {edit
-                ?<div><YN val={d.blockerPresent} set={s("blockerPresent")} size="small"/>
-                  {d.blockerPresent==="Y"&&<EI value={d.blockerText} onChange={s("blockerText")} style={{color:"#fca5a5",fontSize:11,marginTop:6}} placeholder="Describe blocker..."/>}</div>
-                :<div>
-                  <div style={{fontSize:13,fontWeight:700,color:d.blockerPresent==="Y"?"#f87171":"#64748b",marginBottom:d.blockerPresent==="Y"?4:0}}>{d.blockerPresent==="Y"?"Yes":"No"}</div>
-                  {d.blockerPresent==="Y"&&d.blockerText&&<div style={{fontSize:11,color:"#fca5a5"}}>{d.blockerText}</div>}
-                </div>}
+              {edit?<div><YN val={d.blockerPresent} set={s("blockerPresent")} size="small"/>{d.blockerPresent==="Y"&&<EI value={d.blockerText} onChange={s("blockerText")} style={{color:"#fca5a5",fontSize:11,marginTop:6}} placeholder="Describe..."/>}</div>
+                   :<div><div style={{fontSize:13,fontWeight:700,color:d.blockerPresent==="Y"?"#f87171":"#64748b"}}>{d.blockerPresent==="Y"?"Yes":"No"}</div>{d.blockerPresent==="Y"&&d.blockerText&&<div style={{fontSize:11,color:"#fca5a5",marginTop:2}}>{d.blockerText}</div>}</div>}
             </div>
-
             {/* Escalation */}
             <div style={{background:d.escalation==="Y"?"rgba(245,158,11,0.1)":"rgba(99,102,241,0.1)",borderRadius:12,padding:12,border:"1px solid "+(d.escalation==="Y"?"rgba(245,158,11,0.4)":"rgba(99,102,241,0.2)")}}>
               <div style={{fontSize:10,color:d.escalation==="Y"?"#fbbf24":"#6366f1",fontWeight:700,textTransform:"uppercase",marginBottom:6}}>⚠️ Escalation</div>
               {edit?<YN val={d.escalation} set={s("escalation")} size="small"/>
                    :<div style={{fontSize:13,fontWeight:700,color:d.escalation==="Y"?"#fbbf24":"#64748b"}}>{d.escalation==="Y"?"Yes — Escalated":"No"}</div>}
             </div>
-
             {/* Last Updated */}
             <div style={{background:"rgba(99,102,241,0.1)",borderRadius:12,padding:12,border:"1px solid rgba(99,102,241,0.2)"}}>
               <div style={{fontSize:10,color:"#6366f1",fontWeight:700,textTransform:"uppercase",marginBottom:6}}>Last Updated</div>
               <div style={{fontSize:12,fontWeight:600,color:"#94a3b8"}}>{d.lastUpdated||"—"}</div>
-              {edit&&<button onClick={()=>s("lastUpdated")(today())} style={{marginTop:4,background:"#334155",border:"none",color:"#94a3b8",borderRadius:6,padding:"3px 8px",fontSize:10,cursor:"pointer"}}>Update to Today</button>}
+              {edit&&<button onClick={()=>s("lastUpdated")(today())} style={{marginTop:4,background:"#334155",border:"none",color:"#94a3b8",borderRadius:6,padding:"3px 8px",fontSize:10,cursor:"pointer"}}>Today</button>}
             </div>
           </div>
-
           {/* Next Milestone */}
           <div style={{marginTop:12,background:"rgba(99,102,241,0.08)",borderRadius:10,padding:"10px 14px",border:"1px solid rgba(99,102,241,0.15)"}}>
             <div style={{fontSize:10,color:"#6366f1",fontWeight:700,textTransform:"uppercase",marginBottom:4}}>🎯 Next Milestone</div>
@@ -511,20 +442,15 @@ function ProjectDashboard({project,onSave,onBack}) {
           </div>
         </Card>
 
-        {/* ══════════════════════════════════════════
-            LAYER 2 — PM CONTROL
-        ══════════════════════════════════════════ */}
-        <div style={{marginBottom:4}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
-            <div style={{width:3,height:20,background:"#f59e0b",borderRadius:2}}/>
-            <span style={{fontSize:12,fontWeight:700,color:"#f59e0b",textTransform:"uppercase",letterSpacing:"0.1em"}}>Layer 2 — PM Control</span>
-            <span style={{fontSize:11,color:"#334155"}}>Your world</span>
-          </div>
+        {/* ── LAYER 2: PM CONTROL ── */}
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:12}}>
+          <div style={{width:3,height:20,background:"#f59e0b",borderRadius:2}}/>
+          <span style={{fontSize:12,fontWeight:700,color:"#f59e0b",textTransform:"uppercase",letterSpacing:"0.1em"}}>Layer 2 — PM Control</span>
+          <span style={{fontSize:11,color:"#334155"}}>Your world</span>
         </div>
 
-        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:16,marginBottom:16}}>
-
-          {/* CLIENT DELIVERABLES */}
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16,marginBottom:16}}>
+          {/* Client Deliverables */}
           <Card>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
               <SL color="#22d3ee">📋 Client Deliverables</SL>
@@ -535,12 +461,12 @@ function ProjectDashboard({project,onSave,onBack}) {
                 <span style={{fontSize:10,color:"#22d3ee",fontWeight:700}}>{clientPct}%</span>
               </div>
             </div>
-            {Object.entries(clientDelivLabels).map(([key,label])=>(
-              <DelivCheck key={key} label={label} val={d[key]} set={s(key)} editMode={true}/>
+            {Object.entries(clientDelivs).map(([key,label])=>(
+              <DelivCheck key={key} label={label} val={d[key]} set={s(key)}/>
             ))}
           </Card>
 
-          {/* INTERNAL DELIVERABLES */}
+          {/* Internal Deliverables */}
           <Card>
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10}}>
               <SL color="#f59e0b">⚙️ Internal Deliverables</SL>
@@ -551,20 +477,20 @@ function ProjectDashboard({project,onSave,onBack}) {
                 <span style={{fontSize:10,color:"#f59e0b",fontWeight:700}}>{internalPct}%</span>
               </div>
             </div>
-            {Object.entries(internalDelivLabels).map(([key,label])=>(
-              <DelivCheck key={key} label={label} val={d[key]} set={s(key)} editMode={true}/>
+            {Object.entries(internalDelivs).map(([key,label])=>(
+              <DelivCheck key={key} label={label} val={d[key]} set={s(key)}/>
             ))}
           </Card>
 
-          {/* DATES */}
+          {/* Key Dates + Blocker Detail */}
           <Card>
             <SL color="#34d399">📅 Key Dates</SL>
             {[
-              {label:"Kickoff Date",       key:"kickoffDate",          color:"#94a3b8"},
-              {label:"Install Date",       key:"installDate",          color:"#fbbf24"},
-              {label:"Target Go-Live",     key:"goLiveTarget",         color:"#34d399"},
-              {label:"Last Client Touch",  key:"lastClientTouchpoint", color:"#22d3ee"},
-              {label:"Last Internal Update",key:"lastInternalUpdate",  color:"#a78bfa"},
+              {label:"Kickoff Date",        key:"kickoffDate",          color:"#94a3b8"},
+              {label:"Install Date",        key:"installDate",          color:"#fbbf24"},
+              {label:"Target Go-Live",      key:"goLiveTarget",         color:"#34d399"},
+              {label:"Last Client Touch",   key:"lastClientTouchpoint", color:"#22d3ee"},
+              {label:"Last Internal Update",key:"lastInternalUpdate",   color:"#a78bfa"},
             ].map(({label,key,color})=>(
               <div key={key} style={iRow}>
                 <span style={iLbl}>{label}</span>
@@ -574,11 +500,7 @@ function ProjectDashboard({project,onSave,onBack}) {
             ))}
             <div style={{marginTop:10}}>
               <SL color="#ef4444">🚨 Blocker Detail</SL>
-              {[
-                {label:"What is blocked", key:"blockerWhat",  color:"#fca5a5"},
-                {label:"Who owns it",     key:"blockerOwner", color:"#fca5a5"},
-                {label:"Since",          key:"blockerSince",  color:"#fca5a5"},
-              ].map(({label,key,color})=>(
+              {[{label:"What is blocked",key:"blockerWhat",color:"#fca5a5"},{label:"Who owns it",key:"blockerOwner",color:"#fca5a5"},{label:"Since",key:"blockerSince",color:"#fca5a5"}].map(({label,key,color})=>(
                 <div key={key} style={iRow}>
                   <span style={iLbl}>{label}</span>
                   {edit?<EI value={d[key]} onChange={s(key)} style={{color,textAlign:"right",fontSize:12}} placeholder="—"/>
@@ -588,7 +510,7 @@ function ProjectDashboard({project,onSave,onBack}) {
             </div>
           </Card>
 
-          {/* RISKS & NEXT STEPS */}
+          {/* Risks & Next Steps */}
           <Card>
             <SL color="#f87171">⚠️ Risks & Next Steps</SL>
             <div style={{marginBottom:12}}>
@@ -599,7 +521,7 @@ function ProjectDashboard({project,onSave,onBack}) {
                       <span style={{color:"#f87171",fontSize:10,marginTop:2}}>▸</span>
                       <span style={{fontSize:12,color:"#fca5a5"}}>{line.replace(/^[•\-]\s*/,"")}</span>
                     </div>
-                  ))}{!d.risks&&<div style={{fontSize:12,color:"#334155"}}>No risks noted</div>}</div>}
+                  ))}{!d.risks&&<div style={{fontSize:12,color:"#334155"}}>None noted</div>}</div>}
             </div>
             <div>
               <div style={{fontSize:10,color:"#64748b",fontWeight:600,textTransform:"uppercase",marginBottom:6}}>Next Steps</div>
@@ -609,30 +531,27 @@ function ProjectDashboard({project,onSave,onBack}) {
                       <span style={{color:"#818cf8",fontSize:10,marginTop:2}}>▸</span>
                       <span style={{fontSize:12,color:"#c7d2fe"}}>{line.replace(/^[•\-]\s*/,"")}</span>
                     </div>
-                  ))}{!d.nextSteps&&<div style={{fontSize:12,color:"#334155"}}>No next steps added</div>}</div>}
+                  ))}{!d.nextSteps&&<div style={{fontSize:12,color:"#334155"}}>None added</div>}</div>}
             </div>
           </Card>
         </div>
 
-        {/* ══════════════════════════════════════════
-            LAYER 3 — FULL DETAIL (collapsible)
-        ══════════════════════════════════════════ */}
+        {/* ── LAYER 3: FULL DETAIL (collapsible) ── */}
         <div style={{borderRadius:16,border:"1px solid #334155",overflow:"hidden"}}>
           <button onClick={()=>setLayer3Open(v=>!v)}
-            style={{width:"100%",background:"#1e293b",border:"none",padding:"14px 20px",
-              display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
+            style={{width:"100%",background:"#1e293b",border:"none",padding:"14px 20px",display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer"}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <div style={{width:3,height:20,background:"#475569",borderRadius:2}}/>
               <span style={{fontSize:12,fontWeight:700,color:"#94a3b8",textTransform:"uppercase",letterSpacing:"0.1em"}}>Layer 3 — Full Detail</span>
-              <span style={{fontSize:11,color:"#334155"}}>Shipping · Network · Site · Devices · Notes</span>
+              <span style={{fontSize:11,color:"#334155"}}>Shipping · Network · Site & Install · Devices · Notes</span>
             </div>
-            <span style={{fontSize:16,color:"#475569",transition:"transform 0.2s",transform:layer3Open?"rotate(180deg)":"rotate(0deg)"}}>▼</span>
+            <span style={{fontSize:16,color:"#475569",transform:layer3Open?"rotate(180deg)":"rotate(0deg)",display:"inline-block",transition:"transform 0.2s"}}>▼</span>
           </button>
 
           {layer3Open&&(
             <div style={{padding:"16px 20px 20px",background:"#0f172a"}}>
 
-              {/* GO/NO GO strip */}
+              {/* GO/NO GO — now always editable */}
               <div style={{borderRadius:12,padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8,marginBottom:16,background:finalGo?"#052e16":"#450a0a",border:"1px solid "+(finalGo?"#166534":"#7f1d1d")}}>
                 <div style={{display:"flex",alignItems:"center",gap:10}}>
                   <span style={{fontSize:18}}>{finalGo?"✅":"🚫"}</span>
@@ -641,16 +560,17 @@ function ProjectDashboard({project,onSave,onBack}) {
                     <div style={{fontSize:15,fontWeight:900,color:finalGo?"#86efac":"#fca5a5"}}>{finalGo?"GO — Ready":"NO GO — Action Required"}</div>
                   </div>
                 </div>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                  {[["Network",d.networkReady],["Power",d.powerAvailable],["Devices",d.devicesConfigured]].map(([l,v])=>(
-                    <span key={l} style={{padding:"3px 8px",borderRadius:8,fontSize:11,fontWeight:700,background:v==="Y"?"#166534":"#7f1d1d",color:"#fff"}}>
-                      {l}: {v} {edit&&<span onClick={()=>s(l==="Network"?"networkReady":l==="Power"?"powerAvailable":"devicesConfigured")(v==="Y"?"N":"Y")} style={{cursor:"pointer",marginLeft:2}}>⇄</span>}
-                    </span>
+                <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                  {[["Network","networkReady"],["Power","powerAvailable"],["Devices","devicesConfigured"],["USB Req","usbRequired"]].map(([l,k])=>(
+                    <div key={k} style={{display:"flex",alignItems:"center",gap:4}}>
+                      <span style={{padding:"3px 8px",borderRadius:8,fontSize:11,fontWeight:700,background:d[k]==="Y"?"#166534":"#7f1d1d",color:"#fff"}}>{l}: {d[k]}</span>
+                      <YN val={d[k]} set={s(k)} size="small"/>
+                    </div>
                   ))}
                 </div>
               </div>
 
-              {/* Detail tabs */}
+              {/* Detail Tabs */}
               <div style={{display:"flex",gap:0,borderBottom:"1px solid #334155",marginBottom:16,overflowX:"auto"}}>
                 {DETAIL_TABS.map(t=>(
                   <button key={t.id} onClick={()=>setDetailTab(t.id)}
@@ -684,17 +604,12 @@ function ProjectDashboard({project,onSave,onBack}) {
                     </div>
                   </Card>
                   <Card>
-                    <SL>📍 Site Address</SL>
-                    <div style={{background:"rgba(51,65,85,0.4)",borderRadius:10,padding:12,marginBottom:10}}>
-                      {edit?<textarea value={d.siteAddress||""} onChange={e=>s("siteAddress")(e.target.value)} rows={2} style={{...taStyle,background:"transparent",border:"none",borderBottom:"1px dashed #475569",borderRadius:0,padding:"2px 0"}}/>
-                           :<div style={{color:"#fff",fontSize:13,lineHeight:1.6,whiteSpace:"pre-line"}}>{d.siteAddress||"—"}</div>}
-                    </div>
                     <SL>📦 Shipping Address</SL>
                     <div style={{background:"rgba(51,65,85,0.4)",borderRadius:10,padding:12,marginBottom:8}}>
                       {edit?<textarea value={d.shippingAddress||""} onChange={e=>s("shippingAddress")(e.target.value)} rows={2} style={{...taStyle,background:"transparent",border:"none",borderBottom:"1px dashed #475569",borderRadius:0,padding:"2px 0"}}/>
                            :<div style={{color:"#fff",fontSize:13,lineHeight:1.6,whiteSpace:"pre-line"}}>{d.shippingAddress||"—"}</div>}
                     </div>
-                    <div style={{fontSize:11,color:"#64748b",marginBottom:4}}>Attn</div>
+                    <div style={{fontSize:11,color:"#64748b",marginBottom:4}}>Attn / Receiving</div>
                     {edit?<EI value={d.shippingAttn} onChange={s("shippingAttn")} style={{color:"#c4b5fd",fontWeight:600}}/>
                          :<div style={{fontSize:12,fontWeight:600,color:"#c4b5fd"}}>{d.shippingAttn||"—"}</div>}
                   </Card>
@@ -716,12 +631,15 @@ function ProjectDashboard({project,onSave,onBack}) {
                   </Card>
                   <Card>
                     <SL>🔐 Network Config</SL>
-                    <div style={{background:"rgba(51,65,85,0.4)",borderRadius:10,padding:14,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                      <div><div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:2}}>Stored in 1Password</div><div style={{fontSize:11,color:"#64748b"}}>Credentials in 1Password vault</div></div>
-                      {edit?<YN val={d.networkConfigIn1P} set={s("networkConfigIn1P")}/>
-                           :<span style={{padding:"5px 12px",borderRadius:8,fontSize:12,fontWeight:700,background:d.networkConfigIn1P==="Y"?"rgba(5,46,22,0.8)":"rgba(69,10,10,0.8)",color:d.networkConfigIn1P==="Y"?"#34d399":"#f87171"}}>{d.networkConfigIn1P==="Y"?"Yes":"No"}</span>}
+                    <div style={{background:"rgba(51,65,85,0.4)",borderRadius:10,padding:14,display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:600,color:"#fff",marginBottom:2}}>WiFi Configs Received</div>
+                        <div style={{fontSize:11,color:"#64748b"}}>Configuration files received for deployment</div>
+                      </div>
+                      {edit?<YN val={d.wifiConfigsReceived} set={s("wifiConfigsReceived")}/>
+                           :<span style={{padding:"5px 12px",borderRadius:8,fontSize:12,fontWeight:700,background:d.wifiConfigsReceived==="Y"?"rgba(5,46,22,0.8)":"rgba(69,10,10,0.8)",color:d.wifiConfigsReceived==="Y"?"#34d399":"#f87171"}}>{d.wifiConfigsReceived==="Y"?"Yes":"No"}</span>}
                     </div>
-                    <div style={{marginTop:12,padding:"10px 14px",background:"rgba(51,65,85,0.4)",borderRadius:10}}>
+                    <div style={{padding:"10px 14px",background:"rgba(51,65,85,0.4)",borderRadius:10}}>
                       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
                         <span style={{fontSize:13,color:"#cbd5e1"}}>WiFi Config Required?</span>
                         {edit?<YN val={d.wifiConfigRequired} set={s("wifiConfigRequired")}/>
@@ -732,10 +650,16 @@ function ProjectDashboard({project,onSave,onBack}) {
                 </div>
               )}
 
-              {/* SITE */}
+              {/* SITE & INSTALL (combined) */}
               {detailTab==="site"&&(
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:16}}>
+                  {/* Site Address */}
                   <Card>
+                    <SL>📍 Site Address</SL>
+                    <div style={{background:"rgba(51,65,85,0.4)",borderRadius:10,padding:12,marginBottom:10}}>
+                      {edit?<textarea value={d.siteAddress||""} onChange={e=>s("siteAddress")(e.target.value)} rows={2} style={{...taStyle,background:"transparent",border:"none",borderBottom:"1px dashed #475569",borderRadius:0,padding:"2px 0"}}/>
+                           :<div style={{color:"#fff",fontSize:13,lineHeight:1.6,whiteSpace:"pre-line"}}>{d.siteAddress||"—"}</div>}
+                    </div>
                     <SL>🏗️ Site Conditions</SL>
                     {[{l:"PPE",k:"ppe"},{l:"Union Rules",k:"unionRules"},{l:"Work Hours",k:"workHours"},{l:"Ceiling Type",k:"ceilingType"},{l:"Mounting Type",k:"mountingType"}].map(({l,k})=>(
                       <div key={k} style={iRow}>
@@ -744,14 +668,19 @@ function ProjectDashboard({project,onSave,onBack}) {
                              :<span style={{fontSize:12,fontWeight:600,color:"#e2e8f0"}}>{d[k]||"—"}</span>}
                       </div>
                     ))}
+                    <div style={iRow}><span style={iLbl}>COI Required</span>
+                      {edit?<YN val={d.coiRequired} set={s("coiRequired")} size="small"/>:<span style={{fontSize:12,fontWeight:600,color:d.coiRequired==="Y"?"#fbbf24":"#64748b"}}>{d.coiRequired==="Y"?"Yes":"No"}</span>}
+                    </div>
                     <div style={iRow}><span style={iLbl}>Site Survey</span>
                       {edit?<EI value={d.siteSurveyLink} onChange={s("siteSurveyLink")} style={{color:"#818cf8",textAlign:"right",fontSize:12}}/>
                            :d.siteSurveyLink?<a href={d.siteSurveyLink} target="_blank" rel="noreferrer" style={{fontSize:12,fontWeight:600,color:"#818cf8",textDecoration:"underline"}}>View ↗</a>:<span style={{fontSize:12,color:"#334155"}}>Not added</span>}
                     </div>
                   </Card>
+
+                  {/* Access Contact */}
                   <Card>
                     <SL>🔑 Access Contact</SL>
-                    <div style={{display:"flex",alignItems:"center",gap:12,background:"rgba(51,65,85,0.4)",borderRadius:10,padding:12,marginBottom:10}}>
+                    <div style={{display:"flex",alignItems:"center",gap:12,background:"rgba(51,65,85,0.4)",borderRadius:10,padding:12,marginBottom:12}}>
                       <div style={{width:40,height:40,borderRadius:"50%",background:"linear-gradient(135deg,#f59e0b,#ea580c)",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:900,fontSize:13,flexShrink:0}}>{initials(d.accessName)}</div>
                       <div style={{flex:1,minWidth:0}}>
                         {edit?<EI value={d.accessName} onChange={s("accessName")} style={{color:"#fff",fontWeight:700}}/>:<div style={{fontWeight:700,color:"#fff",fontSize:13}}>{d.accessName||"—"}</div>}
@@ -759,14 +688,35 @@ function ProjectDashboard({project,onSave,onBack}) {
                         {edit?<EI value={d.accessPhone} onChange={s("accessPhone")} style={{color:"#fbbf24",fontSize:12}}/>:<div style={{color:"#fbbf24",fontSize:12,fontWeight:600}}>{d.accessPhone||"—"}</div>}
                       </div>
                     </div>
-                    <div style={{marginBottom:10}}>
+                    <div style={{marginBottom:12}}>
                       <div style={{fontSize:10,color:"#64748b",fontWeight:600,textTransform:"uppercase",marginBottom:6}}>Access Type</div>
                       {edit?<select value={d.accessType} onChange={e=>s("accessType")(e.target.value)} style={selStyle}><option>Badge Access</option><option>Escort</option><option>Other</option></select>
                            :<span style={{padding:"3px 10px",borderRadius:8,fontSize:12,fontWeight:700,background:d.accessType==="Badge Access"?"rgba(5,46,22,0.8)":"rgba(120,53,15,0.8)",color:d.accessType==="Badge Access"?"#34d399":"#fcd34d"}}>{d.accessType==="Badge Access"?"🪪":"👮"} {d.accessType}</span>}
                     </div>
-                    <div style={{fontSize:10,color:"#64748b",fontWeight:600,textTransform:"uppercase",marginBottom:4}}>Notes</div>
+                    <div style={{fontSize:10,color:"#64748b",fontWeight:600,textTransform:"uppercase",marginBottom:4}}>Access Notes</div>
                     {edit?<textarea value={d.accessNote||""} onChange={e=>s("accessNote")(e.target.value)} rows={2} style={taStyle}/>
                          :<div style={{fontSize:12,color:"#cbd5e1",background:"rgba(51,65,85,0.4)",borderRadius:8,padding:"8px 10px"}}>{d.accessNote||"—"}</div>}
+
+                    {/* Install details in same card */}
+                    <div style={{marginTop:16,paddingTop:12,borderTop:"1px solid #334155"}}>
+                      <SL>🔧 Installation</SL>
+                      <div style={iRow}><span style={iLbl}>Installer / Team</span>
+                        {edit?<EI value={d.installerName} onChange={s("installerName")} style={{color:"#67e8f9",textAlign:"right",fontSize:12}}/>:<span style={{fontSize:12,fontWeight:600,color:"#67e8f9"}}>{d.installerName||"—"}</span>}
+                      </div>
+                      {[{l:"Self Install",k:"selfInstall"},{l:"Construction Site",k:"construction"},{l:"Added to Install Tool",k:"addedToInstallTool"}].map(({l,k})=>(
+                        <div key={k} style={iRow}><span style={iLbl}>{l}</span>
+                          {edit?<YN val={d[k]} set={s(k)} size="small"/>:<span style={{fontSize:11,fontWeight:700,color:d[k]==="Y"?"#34d399":"#64748b"}}>{d[k]==="Y"?"Yes":"No"}</span>}
+                        </div>
+                      ))}
+                      {d.whatsappLink&&(
+                        <div style={{marginTop:10}}>
+                          <a href={d.whatsappLink} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:8,background:"rgba(5,46,22,0.6)",border:"1px solid #166634",borderRadius:10,padding:"8px 14px",color:"#4ade80",fontWeight:700,fontSize:12}}>
+                            <span style={{fontSize:16}}>💬</span> Open WhatsApp Chat ↗
+                          </a>
+                        </div>
+                      )}
+                      {edit&&<div style={{marginTop:8}}><div style={{fontSize:10,color:"#64748b",marginBottom:4}}>WhatsApp Link</div><EI value={d.whatsappLink} onChange={s("whatsappLink")} style={{color:"#4ade80",fontSize:12}}/></div>}
+                    </div>
                   </Card>
                 </div>
               )}
@@ -775,7 +725,7 @@ function ProjectDashboard({project,onSave,onBack}) {
               {detailTab==="devices"&&(
                 <div>
                   <Card style={{marginBottom:12}}>
-                    <SL>📦 Order Status</SL>
+                    <SL>📦 Order Progress</SL>
                     <div style={{display:"flex",alignItems:"flex-start",marginBottom:16}}>
                       {ORDER.map((step,i)=>(
                         <div key={step} style={{display:"flex",alignItems:"center",flex:1}}>
@@ -804,30 +754,6 @@ function ProjectDashboard({project,onSave,onBack}) {
                       </table>
                     </div>
                     {edit&&<button onClick={addDev} style={{background:"transparent",border:"none",color:"#818cf8",fontSize:11,fontWeight:700,cursor:"pointer"}}>+ Add device row</button>}
-                  </Card>
-                  <Card>
-                    <SL>🔧 Installation</SL>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-                      {[{l:"Installer",k:"installerName",c:"#67e8f9"},{l:"Install Date",k:"installDate",c:"#fbbf24"},{l:"Work Hours",k:"workHours",c:"#94a3b8"}].map(({l,k,c})=>(
-                        <div key={k} style={iRow}>
-                          <span style={iLbl}>{l}</span>
-                          {edit?<EI value={d[k]} onChange={s(k)} style={{color:c,fontSize:12,textAlign:"right"}}/>:<span style={{fontSize:12,fontWeight:600,color:c}}>{d[k]||"—"}</span>}
-                        </div>
-                      ))}
-                      {[{l:"Self Install",k:"selfInstall"},{l:"Construction",k:"construction"},{l:"Install Tool",k:"addedToInstallTool"}].map(({l,k})=>(
-                        <div key={k} style={iRow}>
-                          <span style={iLbl}>{l}</span>
-                          {edit?<YN val={d[k]} set={s(k)} size="small"/>
-                               :<span style={{fontSize:11,fontWeight:700,color:d[k]==="Y"?"#34d399":"#64748b"}}>{d[k]==="Y"?"Yes":"No"}</span>}
-                        </div>
-                      ))}
-                    </div>
-                    {d.whatsappLink&&<div style={{marginTop:10}}>
-                      <a href={d.whatsappLink} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:8,background:"rgba(5,46,22,0.6)",border:"1px solid #166534",borderRadius:10,padding:"8px 14px",color:"#4ade80",fontWeight:700,fontSize:12}}>
-                        <span style={{fontSize:16}}>💬</span> Open WhatsApp Chat ↗
-                      </a>
-                    </div>}
-                    {edit&&<div style={{marginTop:8}}><div style={{fontSize:10,color:"#64748b",marginBottom:4}}>WhatsApp Link</div><EI value={d.whatsappLink} onChange={s("whatsappLink")} style={{color:"#4ade80",fontSize:12}}/></div>}
                   </Card>
                 </div>
               )}
@@ -874,107 +800,69 @@ function ProjectDashboard({project,onSave,onBack}) {
   );
 }
 
-// ─────────────────────────────────────────────
-// MAIN APP
-// ─────────────────────────────────────────────
+// ── MAIN APP ──
 function App() {
-  const [projects, setProjects] = useState([]);
-  const [activeId, setActiveId] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
+  const [projects,setProjects]=useState([]);
+  const [activeId,setActiveId]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [syncing,setSyncing]=useState(false);
 
-  // Load all projects from Google Sheets on startup
   useEffect(()=>{
-    const init = async () => {
+    const init=async()=>{
       setLoading(true);
-
-      // Check hash immediately before any async work
-      let hashId = null;
-      try {
-        const hash = window.location.hash;
-        if(hash && hash.startsWith("#project-")) {
-          hashId = hash.replace("#project-","");
-        }
-      } catch(e){}
-
-      // Load from Google Sheets
-      const live = await api.getAll();
-      if(live && live.length > 0) {
+      try{ const c=localStorage.getItem("vs_projects"); if(c) setProjects(JSON.parse(c)); }catch(e){}
+      let hashId=null;
+      try{ const h=window.location.hash; if(h&&h.startsWith("#project-")) hashId=h.replace("#project-",""); }catch(e){}
+      const live=await api.getAll();
+      if(live&&live.length>0){
         setProjects(live);
-        try { localStorage.setItem("vs_projects", JSON.stringify(live)); } catch(e){}
-        // If we have a hash ID and the project exists in the data, open it
-        if(hashId && live.find(p => p.id === hashId)) {
-          setActiveId(hashId);
-        }
+        try{ localStorage.setItem("vs_projects",JSON.stringify(live)); }catch(e){}
+        if(hashId&&live.find(p=>p.id===hashId)) setActiveId(hashId);
       } else {
-        // Fall back to localStorage cache
-        try {
-          const cached = localStorage.getItem("vs_projects");
-          if(cached) {
-            const list = JSON.parse(cached);
-            setProjects(list);
-            if(hashId && list.find(p => p.id === hashId)) {
-              setActiveId(hashId);
-            }
-          }
-        } catch(e){}
+        try{ const c=localStorage.getItem("vs_projects"); if(c){ const list=JSON.parse(c); setProjects(list); if(hashId&&list.find(p=>p.id===hashId)) setActiveId(hashId); } }catch(e){}
       }
-
       setLoading(false);
     };
     init();
   },[]);
 
-  // Sync URL hash with active project
   useEffect(()=>{
-    try {
-      if(activeId) window.location.hash = "project-"+activeId;
-      else window.location.hash = "";
-    } catch(e){}
+    try{ if(activeId) window.location.hash="project-"+activeId; else window.location.hash=""; }catch(e){}
   },[activeId]);
 
-  // Listen for browser back/forward
   useEffect(()=>{
-    const onHash = () => {
-      try {
-        const hash = window.location.hash;
-        if(hash && hash.startsWith("#project-")) setActiveId(hash.replace("#project-",""));
-        else setActiveId(null);
-      } catch(e){}
-    };
-    window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
+    const onHash=()=>{ try{ const h=window.location.hash; if(h&&h.startsWith("#project-")) setActiveId(h.replace("#project-","")); else setActiveId(null); }catch(e){} };
+    window.addEventListener("hashchange",onHash);
+    return()=>window.removeEventListener("hashchange",onHash);
   },[]);
 
-  const createProject = async (clientName, siteName, floorName) => {
-    const p = BLANK(clientName, siteName, floorName);
-    const updated = [p, ...projects];
+  const createProject=async(clientName,siteName,floorName)=>{
+    const p=BLANK(clientName,siteName,floorName);
+    const updated=[p,...projects];
     setProjects(updated);
-    try { localStorage.setItem("vs_projects", JSON.stringify(updated)); } catch(e){}
-    setSyncing(true);
-    await api.save(p);
-    setSyncing(false);
+    try{ localStorage.setItem("vs_projects",JSON.stringify(updated)); }catch(e){}
+    setSyncing(true); await api.save(p); setSyncing(false);
     setActiveId(p.id);
   };
 
-  const saveProject = async (updated) => {
-    const list = projects.map(p => p.id===updated.id ? updated : p);
+  const saveProject=async(updated)=>{
+    const list=projects.map(p=>p.id===updated.id?updated:p);
     setProjects(list);
-    try { localStorage.setItem("vs_projects", JSON.stringify(list)); } catch(e){}
+    try{ localStorage.setItem("vs_projects",JSON.stringify(list)); }catch(e){}
     await api.save(updated);
   };
 
-  const deleteProject = async (id) => {
-    const list = projects.filter(p => p.id !== id);
+  const deleteProject=async(id)=>{
+    const list=projects.filter(p=>p.id!==id);
     setProjects(list);
-    try { localStorage.setItem("vs_projects", JSON.stringify(list)); } catch(e){}
+    try{ localStorage.setItem("vs_projects",JSON.stringify(list)); }catch(e){}
     await api.delete(id);
     if(activeId===id) setActiveId(null);
   };
 
-  const active = projects.find(p => p.id === activeId) || null;
+  const active=projects.find(p=>p.id===activeId)||null;
 
-  if(loading) return (
+  if(loading) return(
     <div style={{minHeight:"100vh",background:"#0f172a",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16}}>
       <div style={{fontSize:32}}>⚡</div>
       <div style={{fontSize:14,color:"#6366f1",fontWeight:700}}>Loading VergeSense Dashboard...</div>
