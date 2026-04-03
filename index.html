@@ -9,7 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#0f172a;color:#fff;font-family:system-ui,-apple-system,sans-serif;min-height:100vh}
+body{background:#0f172a;color:#fff;font-family:system-ui,-apple-system,sans-serif;min-height:100vh;padding-bottom:36px}
 input,textarea,select{font-family:inherit}
 a{color:inherit;text-decoration:none}
 ::-webkit-scrollbar{height:4px;width:4px}
@@ -19,19 +19,211 @@ a{color:inherit;text-decoration:none}
 </head>
 <body>
 <div id="root"></div>
+<div id="demo-banner" style="position:fixed;bottom:0;left:0;right:0;background:linear-gradient(90deg,#4f46e5,#7c3aed);color:#fff;text-align:center;padding:8px;font-size:12px;font-weight:700;font-family:system-ui,sans-serif;z-index:9999;letter-spacing:0.03em;">
+  ⚡ DEMO MODE — Sample data only &nbsp;·&nbsp; VergeSense Deployment Dashboard &nbsp;·&nbsp; Internal Preview for Ty
+</div>
 <script type="text/babel">
 const { useState, useEffect } = React;
 
-const SITE_URL = "https://vs-deployments.github.io/vsdash/";
-const API_URL  = "https://script.google.com/macros/s/AKfycbx7oz6HpMBxjdarV1LOYtlLDqbq2nJJaJtjsyK10q51vVDVCk-fjSAVk3bSNkutfDI/exec";
+const SITE_URL = "YOUR_SITE_URL";
+const API_URL  = "YOUR_GOOGLE_APPS_SCRIPT_URL";
 const slugify  = s => s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 const getUrl   = id => SITE_URL + "#project-" + id;
 const today    = () => new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
 
+// ── DEMO MODE — sample data so you can see the dashboard in action ──
+const DEMO_PROJECTS = [
+  {
+    id:"acme-hq-floor12-demo", clientName:"Acme Corp", siteName:"HQ", floorName:"Floor 12",
+    projectPhase:"In Progress", status:"Green",
+    internalOwner:"Michelle Jackson", ae:"Jordan Lee", csm:"Sam Rivera",
+    nextMilestone:"Client confirmation by Friday", installDate:"2026-04-18", goLiveTarget:"2026-04-25",
+    blockerPresent:"N", blockerText:"", escalation:"N", lastUpdated:"Apr 2, 2026",
+    salesforceLink:"", kickoffDate:"2026-03-10", lastClientTouchpoint:"2026-03-28", lastInternalUpdate:"2026-04-01",
+    blockerWhat:"", blockerOwner:"", blockerSince:"",
+    projectType:"New Deployment", pocName:"Sarah Chen", pocEmail:"s.chen@acme.com", pocPhone:"(415) 555-0192",
+    orderStatus:"Delivered", devices:[{type:"VS-300 Sensor",qty:"12",shipListLink:""},{type:"VS-Gateway",qty:"2",shipListLink:""}],
+    wifiConfigRequired:"N", siteAddress:"350 Mission St
+San Francisco, CA 94105", shippingAddress:"350 Mission St
+San Francisco, CA 94105",
+    shippingAttn:"Tom Bradley – Receiving", shipped:"Y", shipCarrier:"FedEx", trackingNumber:"7489234701",
+    trackingLink:"", deliveryDate:"2026-03-25", networkType:"WiFi", wifiConfigsReceived:"Y",
+    coiRequired:"Y", ppe:"Hard hat, vest", unionRules:"", workHours:"8AM – 5PM",
+    accessType:"Badge Access", accessName:"Tom Bradley", accessEmail:"t.bradley@acme.com", accessPhone:"(415) 555-0188", accessNote:"Check in at lobby, ask for Tom",
+    siteSurveyLink:"", ceilingType:"Drop ceiling", mountingType:"Magnetic",
+    networkReady:"Y", powerAvailable:"Y", devicesConfigured:"Y", usbRequired:"N",
+    installerName:"VergeSense Field Team", selfInstall:"N", construction:"N", addedToInstallTool:"Y", whatsappLink:"",
+    risks:"Client travel blackout Apr 20–22 — install window is tight", nextSteps:"Confirm badge access with Tom
+Finalize install schedule with field team",
+    metadataReceived:"Y", floorPlansReceived:"Y", networkConfirmed:"Y", coiSubmitted:"Y", shippingInfoConfirmed:"Y",
+    orderActivated:"Y", mapDigitized:"Y", techAssigned:"Y", whatsappCreated:"Y", installScheduled:"Y", validationRequested:"N", csHandoff:"N",
+    meetingNotes:[{id:1001,date:"Apr 1, 2026",title:"Kickoff call",source:"Granola",body:"Client confirmed badge access. Tom Bradley is primary site contact. Floor 12 only — 14 conference rooms total. Network team will have WiFi ready by Apr 15."}],
+    notes:[{id:2001,author:"Michelle Jackson",date:"Apr 2, 2026",text:"Devices confirmed delivered to receiving dock. Tom sent photo confirmation.",pinned:true}],
+  },
+  {
+    id:"globex-chicago-demo", clientName:"Globex Industries", siteName:"Chicago Office", floorName:"Floors 3–5",
+    projectPhase:"Pre-Install", status:"Yellow",
+    internalOwner:"Michelle Jackson", ae:"Casey Park", csm:"Alex Morgan",
+    nextMilestone:"Awaiting COI approval from building management", installDate:"2026-05-06", goLiveTarget:"2026-05-15",
+    blockerPresent:"Y", blockerText:"COI not yet approved by building — blocking install scheduling", escalation:"N", lastUpdated:"Apr 2, 2026",
+    salesforceLink:"", kickoffDate:"2026-03-22", lastClientTouchpoint:"2026-03-30", lastInternalUpdate:"2026-04-01",
+    blockerWhat:"COI approval", blockerOwner:"Client — building management", blockerSince:"2026-03-25",
+    projectType:"New Deployment", pocName:"Diana Flores", pocEmail:"d.flores@globex.com", pocPhone:"(312) 555-0147",
+    orderStatus:"Ordered", devices:[{type:"VS-300 Sensor",qty:"24",shipListLink:""},{type:"VS-Area Sensor",qty:"6",shipListLink:""},{type:"VS-Gateway",qty:"3",shipListLink:""}],
+    wifiConfigRequired:"Y", siteAddress:"233 S Wacker Dr
+Chicago, IL 60606", shippingAddress:"233 S Wacker Dr
+Chicago, IL 60606",
+    shippingAttn:"Diana Flores – IT Dept, Floor 3", shipped:"N", shipCarrier:"", trackingNumber:"", trackingLink:"", deliveryDate:"",
+    networkType:"WiFi", wifiConfigsReceived:"N",
+    coiRequired:"Y", ppe:"", unionRules:"Union labor only — coordinate with building", workHours:"7AM – 3PM",
+    accessType:"Escort", accessName:"Diana Flores", accessEmail:"d.flores@globex.com", accessPhone:"(312) 555-0147", accessNote:"Escort required at all times — contact Diana 24hrs before",
+    siteSurveyLink:"", ceilingType:"Exposed concrete", mountingType:"Adhesive",
+    networkReady:"N", powerAvailable:"Y", devicesConfigured:"N", usbRequired:"N",
+    installerName:"", selfInstall:"N", construction:"N", addedToInstallTool:"N", whatsappLink:"",
+    risks:"COI delay could push install past May 6 window
+Union rules may add lead time for scheduling", nextSteps:"Follow up with Diana on COI status
+Confirm WiFi config details with client IT",
+    metadataReceived:"Y", floorPlansReceived:"Y", networkConfirmed:"N", coiSubmitted:"N", shippingInfoConfirmed:"Y",
+    orderActivated:"Y", mapDigitized:"N", techAssigned:"N", whatsappCreated:"N", installScheduled:"N", validationRequested:"N", csHandoff:"N",
+    meetingNotes:[], notes:[],
+  },
+];
+
 const api = {
-  getAll: async () => { try { const r=await fetch(API_URL+"?action=getAll"); const j=await r.json(); return j.success?j.projects:[]; } catch(e){ return []; } },
-  save:   async p  => { try { await fetch(API_URL+"?action=save&data="+encodeURIComponent(JSON.stringify(p))); return true; } catch(e){ return false; } },
-  del:    async id => { try { await fetch(API_URL+"?action=delete&id="+encodeURIComponent(id)); return true; } catch(e){ return false; } }
+  getAll: async () => DEMO_PROJECTS,
+  save:   async p  => true,
+  del:    async id => true,
+};
+
+// ─── SALESFORCE INTEGRATION ─────────────────────────────────────────────────────
+// SETUP REQUIRED (one-time, Salesforce Admin):
+//  1. SF Setup → App Manager → New Connected App
+//     · Callback URL: YOUR_SITE_URL
+//     · OAuth Scopes: api
+//     · Enable PKCE; Require Secret for PKCE: OFF
+//  2. SF Setup → CORS → New → Origin: https://vs-deployments.github.io
+//  3. Replace YOUR_SF_CLIENT_ID below with the Connected App Consumer Key
+const SF_CLIENT_ID  = "YOUR_SF_CLIENT_ID";   // ← paste your Connected App key here
+const SF_REDIRECT   = SITE_URL;
+const SF_LOGIN_URL  = "https://login.salesforce.com";
+const SF_API_VER    = "v59.0";
+const SF_CONFIGURED = SF_CLIENT_ID !== "YOUR_SF_CLIENT_ID";
+
+// ── Salesforce field names for VergeSense-specific custom fields ──
+// Change these if your org uses different API names
+const SF_CSM_FIELD    = "CSM__r.Name";          // lookup to User; try also Customer_Success_Manager__r.Name
+const SF_INSTALL_FLD  = "Install_Date__c";
+const SF_GOLIVE_FLD   = "Go_Live_Date__c";
+// Kickoff Date lives in Smartsheet, not Salesforce — see Smartsheet panel below
+
+// ── OAuth PKCE helpers ──
+const sfAuth = {
+  _rnd: () => { const a=new Uint8Array(32); crypto.getRandomValues(a); return btoa(String.fromCharCode(...a)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,''); },
+  _sha: async v => { const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(v)); return btoa(String.fromCharCode(...new Uint8Array(d))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,''); },
+  startAuth: async () => {
+    const v = sfAuth._rnd(), c = await sfAuth._sha(v);
+    sessionStorage.setItem('sf_cv', v);
+    window.location.href = SF_LOGIN_URL + '/services/oauth2/authorize?' + new URLSearchParams({response_type:'code',client_id:SF_CLIENT_ID,redirect_uri:SF_REDIRECT,scope:'api',code_challenge:c,code_challenge_method:'S256'});
+  },
+  handleCallback: async () => {
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get('code');
+    if (!code) return false;
+    const v = sessionStorage.getItem('sf_cv');
+    if (!v) return false;
+    try {
+      const r = await fetch(SF_LOGIN_URL+'/services/oauth2/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'authorization_code',code,client_id:SF_CLIENT_ID,redirect_uri:SF_REDIRECT,code_verifier:v}).toString()});
+      if (!r.ok) return false;
+      const d = await r.json();
+      if (!d.access_token) return false;
+      sessionStorage.setItem('sf_tok', d.access_token);
+      sessionStorage.setItem('sf_inst', d.instance_url);
+      sessionStorage.removeItem('sf_cv');
+      window.history.replaceState({}, '', SF_REDIRECT);
+      return true;
+    } catch(e) { return false; }
+  },
+  setManual: (inst, tok) => { sessionStorage.setItem('sf_inst', inst.replace(/\/+$/,'')); sessionStorage.setItem('sf_tok', tok); },
+  disconnect: () => { ['sf_tok','sf_inst','sf_cv'].forEach(k=>sessionStorage.removeItem(k)); },
+  isConnected: () => !!sessionStorage.getItem('sf_tok'),
+  tok: () => sessionStorage.getItem('sf_tok'),
+  inst: () => sessionStorage.getItem('sf_inst'),
+};
+
+const _sfFetch = async (path) => {
+  const base=sfAuth.inst(), tok=sfAuth.tok();
+  if (!base||!tok) return null;
+  try { const r=await fetch(base+'/services/data/'+SF_API_VER+path,{headers:{'Authorization':'Bearer '+tok}}); return r.ok?await r.json():null; } catch(e){ return null; }
+};
+const _sfQuery = async (soql) => {
+  const d = await _sfFetch('/query?q='+encodeURIComponent(soql));
+  return d && Array.isArray(d.records) ? d.records : null;
+};
+
+const _extractOppId = url => {
+  if (!url) return null;
+  const m = url.match(/\/Opportunity\/([0-9A-Za-z]{15,18})/i) || url.match(/\b(006[0-9A-Za-z]{12,15})\b/);
+  return m ? m[1] : null;
+};
+const _fmtAddr = (st,ci,st2,zip,co) => [st,[ci,st2?(st2+(zip?' '+zip:'')):zip||''].filter(Boolean).join(', '),co].filter(Boolean).join('\n');
+
+const loadSFOpportunity = async (sfUrl) => {
+  if (!sfAuth.isConnected()) return {error:'Not connected to Salesforce'};
+  const oppId = _extractOppId(sfUrl);
+  if (!oppId) return {error:'Could not extract Opportunity ID. Use a Lightning or Classic SF URL.'};
+
+  // Build SOQL — try with VergeSense custom fields, fall back on failure
+  const baseFields = `Id,Name,AccountId,Account.Name,Account.ShippingStreet,Account.ShippingCity,Account.ShippingState,Account.ShippingPostalCode,Account.ShippingCountry,Owner.Name,CloseDate`;
+  const customFields = `${SF_CSM_FIELD},${SF_INSTALL_FLD},${SF_GOLIVE_FLD}`;
+
+  let opps = await _sfQuery(`SELECT ${baseFields},${customFields} FROM Opportunity WHERE Id='${oppId}'`);
+  let hasCustom = !!opps;
+  if (!opps) opps = await _sfQuery(`SELECT ${baseFields} FROM Opportunity WHERE Id='${oppId}'`);
+  if (!opps || !opps[0]) return {error:'Opportunity not found or insufficient permissions.'};
+
+  const opp = opps[0];
+  const acc = opp.Account || {};
+
+  // Fetch in parallel: contacts, line items, AND the Order for site/shipping address
+  const [contacts, lineItems, orders, ordersByQuote] = await Promise.all([
+    _sfQuery(`SELECT Contact.Name,Contact.Email,Contact.Phone FROM OpportunityContactRoles WHERE OpportunityId='${oppId}' AND IsPrimary=true LIMIT 1`),
+    _sfQuery(`SELECT Quantity,PricebookEntry.Product2.Name,PricebookEntry.Name FROM OpportunityLineItems WHERE OpportunityId='${oppId}'`),
+    // Try direct OpportunityId link on Order (works if org has this field)
+    _sfQuery(`SELECT ShippingStreet,ShippingCity,ShippingState,ShippingPostalCode,ShippingCountry FROM Order WHERE OpportunityId='${oppId}' ORDER BY CreatedDate DESC LIMIT 1`),
+    // Fallback: link via Quote
+    _sfQuery(`SELECT ShippingStreet,ShippingCity,ShippingState,ShippingPostalCode,ShippingCountry FROM Order WHERE Quote.OpportunityId='${oppId}' ORDER BY CreatedDate DESC LIMIT 1`),
+  ]);
+
+  const poc    = contacts && contacts[0];
+  const order  = (orders && orders[0]) || (ordersByQuote && ordersByQuote[0]) || null;
+  const devices = (lineItems||[]).map(li=>({type:li.PricebookEntry?.Product2?.Name||li.PricebookEntry?.Name||'Product',qty:String(Math.round(li.Quantity||1)),shipListLink:''}));
+
+  // Site/shipping address: Order shipping address is the actual deployment site.
+  // Fall back to Account shipping address if no Order exists yet.
+  const orderAddr = order ? _fmtAddr(order.ShippingStreet,order.ShippingCity,order.ShippingState,order.ShippingPostalCode,order.ShippingCountry) : '';
+  const acctAddr  = _fmtAddr(acc.ShippingStreet,acc.ShippingCity,acc.ShippingState,acc.ShippingPostalCode,acc.ShippingCountry);
+  const siteAddr  = orderAddr || acctAddr; // Order is more accurate when it exists
+
+  // CSM: if CSM__r is a relationship, it comes back as nested object
+  const csmVal = hasCustom ? (opp.CSM__r?.Name || opp[SF_CSM_FIELD] || '') : '';
+
+  return {
+    success: true,
+    data: {
+      clientName:      acc.Name || '',
+      ae:              opp.Owner?.Name || '',
+      csm:             typeof csmVal === 'object' ? (csmVal?.Name||'') : (csmVal||''),
+      pocName:         poc?.Contact?.Name  || '',
+      pocEmail:        poc?.Contact?.Email || '',
+      pocPhone:        poc?.Contact?.Phone || '',
+      siteAddress:     siteAddr,     // From Order.ShippingAddress (deployment site)
+      shippingAddress: siteAddr,     // Same — hardware ships to the deployment site
+      installDate:     hasCustom ? (opp[SF_INSTALL_FLD]||'') : '',
+      goLiveTarget:    hasCustom ? (opp[SF_GOLIVE_FLD]||opp.CloseDate||'') : (opp.CloseDate||''),
+      // kickoffDate intentionally omitted — pull from Smartsheet instead
+      devices:         devices.length ? devices : undefined,
+    }
+  };
 };
 
 const BLANK = (clientName="",siteName="",floorName="") => ({
@@ -112,6 +304,382 @@ function CopyBtn({id}) {
     setCopied(true); setTimeout(()=>setCopied(false),2500);
   };
   return <button onClick={copy} style={{background:copied?"#10b981":"#334155",color:copied?"#fff":"#94a3b8",border:"none",borderRadius:8,padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer",transition:"all 0.2s",whiteSpace:"nowrap"}}>{copied?"✅ Copied!":"🔗 Copy Link"}</button>;
+}
+
+
+
+// ─── SMARTSHEET INTEGRATION ──────────────────────────────────────────────────
+// No admin setup required. Get your personal API token:
+// Smartsheet → avatar → Personal Settings → API Access → Generate new access token
+const SS_API = 'https://api.smartsheet.com/2.0';
+
+const ssAuth = {
+  setToken: tok => sessionStorage.setItem('ss_tok', tok),
+  tok: () => sessionStorage.getItem('ss_tok'),
+  isConnected: () => !!sessionStorage.getItem('ss_tok'),
+  disconnect: () => { sessionStorage.removeItem('ss_tok'); sessionStorage.removeItem('ss_sheet'); },
+};
+
+const _ssGet = async path => {
+  const tok = ssAuth.tok();
+  if (!tok) return null;
+  try {
+    const r = await fetch(SS_API + path, {headers:{'Authorization':'Bearer '+tok}});
+    return r.ok ? await r.json() : null;
+  } catch(e) { return null; }
+};
+
+const extractSSSheetId = url => {
+  if (!url) return null;
+  const m = url.match(/\/sheets\/([0-9]+)/);
+  if (m) return m[1];
+  if (/^\d{8,}$/.test(url.trim())) return url.trim();
+  return null;
+};
+
+// Auto-detect column → dashboard field mapping by column name patterns
+const SS_COL_PATTERNS = [
+  {field:'kickoffDate',   patterns:[/kick.?off/i,/project.?start/i]},
+  {field:'installDate',   patterns:[/install/i,/deployment.?date/i]},
+  {field:'goLiveTarget',  patterns:[/go.?live/i,/launch/i,/live.?date/i]},
+  {field:'clientName',    patterns:[/client/i,/account/i,/company/i,/customer/i]},
+  {field:'ae',            patterns:[/\bae\b/i,/account.?exec/i,/sales.?rep/i,/owner/i]},
+  {field:'csm',           patterns:[/\bcsm\b/i,/customer.?success/i,/cs.?manager/i]},
+  {field:'siteAddress',   patterns:[/site.?addr/i,/install.?addr/i,/location/i]},
+  {field:'installerName', patterns:[/installer/i,/tech/i,/field.?team/i]},
+  {field:'internalOwner', patterns:[/pm\b/i,/project.?manager/i,/internal.?owner/i,/owner/i]},
+];
+
+const detectSSMapping = columns => {
+  const map = {}; // colId → dashboardField
+  columns.forEach(col => {
+    for (const {field, patterns} of SS_COL_PATTERNS) {
+      if (patterns.some(p => p.test(col.title))) {
+        if (!Object.values(map).includes(field)) { // first match wins
+          map[col.id] = field;
+          break;
+        }
+      }
+    }
+  });
+  return map;
+};
+
+const loadSmartsheetRow = async (sheetIdOrUrl, rowId, colMapping) => {
+  const sheetId = extractSSSheetId(sheetIdOrUrl) || sheetIdOrUrl;
+  const sheet = await _ssGet('/sheets/' + sheetId + '?include=columnType');
+  if (!sheet) return {error:'Could not load sheet. Check sheet ID/URL and token.'};
+  const colMap = {}; sheet.columns.forEach(c=>{ colMap[c.id]=c.title; });
+  const row = (sheet.rows||[]).find(r=>r.id===rowId);
+  if (!row) return {error:'Row not found in sheet.'};
+  const data = {};
+  (row.cells||[]).forEach(cell=>{
+    const field = colMapping[cell.columnId];
+    if (field && cell.value != null && cell.value !== '') data[field] = String(cell.displayValue||cell.value);
+  });
+  return {success:true, data};
+};
+
+// ── Smartsheet UI component ──
+function SmartsheetAutoFill({onApply, clientName}) {
+  const [conn,setConn]       = useState(ssAuth.isConnected());
+  const [token,setToken]     = useState('');
+  const [sheetUrl,setShUrl]  = useState(sessionStorage.getItem('ss_sheet')||'');
+  const [rows,setRows]       = useState(null);   // [{id, label}]
+  const [colMap,setColMap]   = useState({});
+  const [status,setStatus]   = useState('idle'); // idle|loading|picking|preview|error
+  const [errMsg,setErrMsg]   = useState('');
+  const [preview,setPreview] = useState(null);
+  const [sel,setSel]         = useState({});
+  const [sheetCols,setShCols]= useState([]);
+
+  const SS_FIELD_LABELS = {kickoffDate:'Kickoff Date',installDate:'Install Date',goLiveTarget:'Go-Live Target',clientName:'Client Name',ae:'AE',csm:'CSM',siteAddress:'Site Address',installerName:'Installer',internalOwner:'PM / Owner'};
+
+  const doConnect = () => {
+    if (!token.trim()) return;
+    ssAuth.setToken(token.trim());
+    setConn(true); setToken('');
+  };
+
+  const doLoadSheet = async () => {
+    const sheetId = extractSSSheetId(sheetUrl) || sheetUrl.trim();
+    if (!sheetId) { setErrMsg('Paste a Smartsheet URL or sheet ID'); return; }
+    setStatus('loading'); setErrMsg('');
+    const sheet = await _ssGet('/sheets/' + sheetId + '?include=columnType');
+    if (!sheet) { setStatus('error'); setErrMsg('Could not load sheet — check URL and token'); return; }
+    sessionStorage.setItem('ss_sheet', sheetUrl);
+    const mapping = detectSSMapping(sheet.columns);
+    setColMap(mapping);
+    setShCols(sheet.columns);
+    // Build row list — show primary column value + any client-name column
+    const primaryCol = sheet.columns.find(c=>c.primary)||sheet.columns[0];
+    const clientCol  = sheet.columns.find(c=>/client|account|company/i.test(c.title));
+    const rowList = (sheet.rows||[]).map(row=>{
+      const primary = row.cells.find(c=>c.columnId===primaryCol?.id);
+      const client  = clientCol ? row.cells.find(c=>c.columnId===clientCol.id) : null;
+      const label   = [primary?.displayValue||primary?.value, client&&client.columnId!==primaryCol?.id?client.displayValue||client.value:null].filter(Boolean).join(' · ');
+      return {id:row.id, label:label||'(empty row)'};
+    }).filter(r=>r.label!=='(empty row)');
+    setRows(rowList); setStatus('picking');
+  };
+
+  const doPickRow = async rowId => {
+    setStatus('loading');
+    const result = await loadSmartsheetRow(sheetUrl, rowId, colMap);
+    if (result.error) { setStatus('error'); setErrMsg(result.error); return; }
+    const s={};
+    Object.entries(result.data).forEach(([k,v])=>{ if(v&&String(v).trim()) s[k]=true; });
+    setPreview(result.data); setSel(s); setStatus('preview');
+  };
+
+  const doApply = () => {
+    const out={};
+    Object.entries(preview).forEach(([k,v])=>{ if(sel[k]) out[k]=v; });
+    onApply(out); setStatus('idle'); setPreview(null);
+  };
+
+  const btn = (label,onClick,style,disabled) => (
+    <button onClick={onClick} disabled={!!disabled} style={{border:'none',borderRadius:8,padding:'5px 13px',fontSize:11,fontWeight:700,cursor:disabled?'not-allowed':'pointer',opacity:disabled?0.5:1,...style}}>{label}</button>
+  );
+
+  if (!conn) return (
+    <div style={{marginTop:8}}>
+      <div style={{fontSize:10,color:'#64748b',marginBottom:6}}>Get token: Smartsheet → avatar → <strong style={{color:'#94a3b8'}}>Personal Settings → API Access → Generate</strong></div>
+      <div style={{display:'flex',gap:8,alignItems:'center'}}>
+        <input value={token} onChange={e=>setToken(e.target.value)} placeholder="Paste Smartsheet API token..."
+          onKeyDown={e=>e.key==='Enter'&&doConnect()}
+          style={{flex:1,background:'#0f172a',border:'1px solid rgba(34,211,238,0.3)',color:'#22d3ee',fontSize:11,borderRadius:8,padding:'6px 10px',outline:'none',fontFamily:'inherit'}}/>
+        {btn('Connect', doConnect, {background:'#0e7490',color:'#fff'})}
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{marginTop:8}}>
+      {(status==='idle'||status==='error'||status==='loading'||status==='picking')&&(
+        <div>
+          <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:status==='idle'?0:6}}>
+            <input value={sheetUrl} onChange={e=>setShUrl(e.target.value)} placeholder="Paste Smartsheet URL or Sheet ID..."
+              onKeyDown={e=>e.key==='Enter'&&doLoadSheet()}
+              style={{flex:1,background:'#0f172a',border:'1px solid rgba(34,211,238,0.3)',color:'#22d3ee',fontSize:11,borderRadius:8,padding:'6px 10px',outline:'none',fontFamily:'inherit'}}/>
+            {btn(status==='loading'?'⟳ Loading...':'Load Sheet', doLoadSheet, {background:'#0e7490',color:'#fff'}, status==='loading')}
+            {btn('disconnect', ()=>{ssAuth.disconnect();setConn(false);setRows(null);setStatus('idle');}, {background:'transparent',color:'#334155',padding:'5px 4px',fontWeight:400})}
+          </div>
+          {errMsg&&<div style={{fontSize:11,color:'#f87171',marginTop:4}}>⚠️ {errMsg}</div>}
+        </div>
+      )}
+
+      {status==='picking'&&rows&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={e=>e.target===e.currentTarget&&setStatus('idle')}>
+          <div style={{background:'#1e293b',borderRadius:20,border:'1px solid #22d3ee',padding:24,maxWidth:480,width:'100%',maxHeight:'80vh',overflowY:'auto',boxShadow:'0 30px 60px rgba(0,0,0,0.6)'}}>
+            <div style={{fontSize:15,fontWeight:900,color:'#fff',marginBottom:4}}>📋 Select Project Row</div>
+            <div style={{fontSize:11,color:'#64748b',marginBottom:14}}>
+              {clientName&&`Tip: look for "${clientName}"`} · {rows.length} rows found · auto-detected {Object.keys(colMap).length} field mappings
+            </div>
+            <div style={{borderRadius:12,overflow:'hidden',border:'1px solid #334155'}}>
+              {rows.map((row,i)=>(
+                <div key={row.id} onClick={()=>doPickRow(row.id)}
+                  style={{padding:'10px 14px',borderBottom:i<rows.length-1?'1px solid #1e293b':'none',cursor:'pointer',background:'transparent',fontSize:12,color:'#e2e8f0',display:'flex',alignItems:'center',gap:8}}
+                  onMouseOver={e=>e.currentTarget.style.background='rgba(34,211,238,0.08)'}
+                  onMouseOut={e=>e.currentTarget.style.background='transparent'}>
+                  <span style={{color:'#22d3ee',fontSize:10,fontWeight:700,flexShrink:0}}>#{i+1}</span>
+                  {row.label}
+                </div>
+              ))}
+              {rows.length===0&&<div style={{padding:'20px',textAlign:'center',color:'#475569',fontSize:12}}>No rows found in sheet</div>}
+            </div>
+            <div style={{marginTop:12,fontSize:10,color:'#475569'}}>
+              Auto-mapped columns: {Object.values(SS_COL_PATTERNS.reduce((acc,{field})=>{if(Object.values(colMap).includes(field))acc[field]=true;return acc;},{})).length > 0 ? Object.entries({...SS_FIELD_LABELS}).filter(([k])=>Object.values(colMap).includes(k)).map(([,v])=>v).join(', ') : 'none detected — check column names'}
+            </div>
+            {btn('Cancel', ()=>setStatus('idle'), {background:'#334155',color:'#94a3b8',marginTop:10,width:'100%',padding:'8px 0',borderRadius:10})}
+          </div>
+        </div>
+      )}
+
+      {status==='preview'&&preview&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={e=>e.target===e.currentTarget&&setStatus('idle')}>
+          <div style={{background:'#1e293b',borderRadius:20,border:'1px solid #22d3ee',padding:24,maxWidth:480,width:'100%',maxHeight:'85vh',overflowY:'auto',boxShadow:'0 30px 60px rgba(0,0,0,0.6)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
+              <div>
+                <div style={{fontSize:15,fontWeight:900,color:'#fff'}}>📋 Smartsheet Data</div>
+                <div style={{fontSize:11,color:'#64748b',marginTop:2}}>Select fields to import</div>
+              </div>
+              {btn('✕',()=>setStatus('idle'),{background:'#334155',color:'#94a3b8',padding:'4px 10px'})}
+            </div>
+            <div style={{borderRadius:12,overflow:'hidden',border:'1px solid #334155',marginBottom:14}}>
+              {Object.entries(SS_FIELD_LABELS).filter(([k])=>preview[k]!=null&&String(preview[k]).trim()).map(([k,label])=>(
+                <div key={k} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'10px 14px',borderBottom:'1px solid #1e293b',background:sel[k]?'rgba(34,211,238,0.08)':'transparent',cursor:'pointer'}} onClick={()=>setSel(p=>({...p,[k]:!p[k]}))}>
+                  <div style={{width:16,height:16,borderRadius:4,flexShrink:0,marginTop:2,background:sel[k]?'#0e7490':'#334155',border:'1px solid '+(sel[k]?'#22d3ee':'#475569'),display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:'#fff',fontWeight:900}}>{sel[k]&&'✓'}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:9,color:sel[k]?'#22d3ee':'#475569',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:2}}>{label}</div>
+                    <div style={{fontSize:12,color:sel[k]?'#e2e8f0':'#64748b'}}>{preview[k]}</div>
+                  </div>
+                </div>
+              ))}
+              {Object.keys(preview).length===0&&<div style={{padding:'20px',textAlign:'center',color:'#475569',fontSize:12}}>No matching fields found. Check that column names include keywords like "Kickoff", "Install", "Go-Live".</div>}
+            </div>
+            <div style={{display:'flex',gap:10}}>
+              <button onClick={doApply} style={{flex:1,background:'linear-gradient(135deg,#0e7490,#0891b2)',color:'#fff',border:'none',borderRadius:12,padding:'11px 0',fontSize:13,fontWeight:700,cursor:'pointer'}}>
+                ✅ Apply {Object.values(sel).filter(Boolean).length} Field{Object.values(sel).filter(Boolean).length!==1?'s':''}
+              </button>
+              {btn('Cancel',()=>setStatus('idle'),{background:'#334155',color:'#94a3b8',borderRadius:12,padding:'11px 20px',fontSize:13,fontWeight:700})}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── SALESFORCE AUTO-FILL COMPONENT ──────────────────────────────────────────
+function SFAutoFill({sfUrl, onApply}) {
+  const [status,setStatus]   = useState('idle');   // idle|loading|preview|error
+  const [result,setResult]   = useState(null);
+  const [sel,setSel]         = useState({});
+  const [conn,setConn]       = useState(sfAuth.isConnected());
+  const [showToken,setShowTk]= useState(false);
+  const [manInst,setManInst] = useState('');
+  const [manTok,setManTok]   = useState('');
+  const [tempUrl,setTempUrl] = useState('');
+  const activeUrl = sfUrl || tempUrl;
+
+  const LABELS = {clientName:'Client Name',ae:'AE',csm:'CSM',pocName:'POC Name',pocEmail:'POC Email',pocPhone:'POC Phone',siteAddress:'Site Address (Order)',shippingAddress:'Shipping Address (Order)',installDate:'Install Date',goLiveTarget:'Go-Live Target'};
+
+  const doLoad = async () => {
+    if (!activeUrl) return;
+    setStatus('loading');
+    const r = await loadSFOpportunity(activeUrl);
+    if (r.error) { setStatus('error'); setResult({error:r.error}); return; }
+    const s={};
+    Object.entries(r.data).forEach(([k,v])=>{ if(v&&(typeof v==='string'?v.trim():(Array.isArray(v)?v.length>0:!!v))) s[k]=true; });
+    setResult(r.data); setSel(s); setStatus('preview');
+  };
+
+  const doApply = () => {
+    const out={};
+    Object.entries(result).forEach(([k,v])=>{ if(sel[k]) out[k]=v; });
+    onApply(out); setStatus('idle'); setResult(null);
+  };
+
+  const doConnectManual = () => {
+    if (!manInst||!manTok) return;
+    sfAuth.setManual(manInst, manTok);
+    setConn(true); setShowTk(false); setManInst(''); setManTok('');
+  };
+
+  const btn = (label,onClick,style) => (
+    <button onClick={onClick} style={{border:'none',borderRadius:8,padding:'5px 13px',fontSize:11,fontWeight:700,cursor:'pointer',...style}}>{label}</button>
+  );
+
+  if (!SF_CONFIGURED) return (
+    <div style={{fontSize:10,color:'#475569',marginTop:6}}>
+      ⚙️ SF auto-fill setup needed —{' '}
+      <span style={{color:'#6366f1',cursor:'pointer',textDecoration:'underline'}}
+        onClick={()=>alert('To enable Salesforce auto-fill:\n\n1. SF Setup → App Manager → New Connected App\n   · Callback URL: YOUR_SITE_URL\n   · OAuth Scopes: api\n   · Enable PKCE, Require Secret: OFF\n\n2. SF Setup → CORS → New\n   · Origin URL: https://vs-deployments.github.io\n\n3. In index.html, replace YOUR_SF_CLIENT_ID with the Connected App Consumer Key\n\nAlternatively, use "session token" mode — no setup required.')}>
+        view instructions
+      </span>
+    </div>
+  );
+
+  if (!conn) return (
+    <div style={{marginTop:8}}>
+      {!showToken ? (
+        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+          {btn('🔗 Connect Salesforce', sfAuth.startAuth, {background:'#1d4ed8',color:'#fff'})}
+          {btn('use session token', ()=>setShowTk(true), {background:'transparent',color:'#475569',padding:'5px 4px',fontWeight:400,textDecoration:'underline'})}
+        </div>
+      ) : (
+        <div style={{background:'#0f172a',border:'1px solid #334155',borderRadius:12,padding:12,marginTop:4}}>
+          <div style={{fontSize:10,color:'#64748b',marginBottom:8}}>🔐 Session credentials (stored in browser only, cleared on close)</div>
+          {[['Instance URL','https://yourorg.my.salesforce.com',manInst,setManInst],['Bearer Token / Session ID','00D...!AQEAq...',manTok,setManTok]].map(([lbl,ph,val,setter])=>(
+            <div key={lbl} style={{marginBottom:8}}>
+              <div style={{fontSize:10,color:'#64748b',marginBottom:3}}>{lbl}</div>
+              <input value={val} onChange={e=>setter(e.target.value)} placeholder={ph}
+                style={{width:'100%',background:'#1e293b',border:'1px solid #334155',color:'#fff',fontSize:11,borderRadius:8,padding:'6px 10px',outline:'none',fontFamily:'inherit'}}/>
+            </div>
+          ))}
+          <div style={{display:'flex',gap:8,marginTop:4}}>
+            {btn('Connect', doConnectManual, {background:'#1d4ed8',color:'#fff'})}
+            {btn('Cancel', ()=>{setShowTk(false);setManInst('');setManTok('');}, {background:'#334155',color:'#94a3b8'})}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div style={{marginTop:8}}>
+      {!sfUrl && (
+        <div style={{marginBottom:6}}>
+          <input value={tempUrl} onChange={e=>setTempUrl(e.target.value)} placeholder="Paste Salesforce Opportunity URL to auto-fill..."
+            style={{width:'100%',background:'#0f172a',border:'1px solid rgba(56,189,248,0.3)',color:'#38bdf8',fontSize:11,borderRadius:8,padding:'6px 10px',outline:'none',fontFamily:'inherit'}}/>
+        </div>
+      )}
+      <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+        {btn(status==='loading'?'⟳ Loading...':'⚡ Auto-fill from Salesforce', doLoad, {
+          background:status==='loading'?'#334155':'linear-gradient(135deg,#1d4ed8,#6366f1)',
+          color:'#fff', opacity:status==='loading'?0.7:1, cursor:status==='loading'?'wait':'pointer',
+          pointerEvents:(!activeUrl||status==='loading')?'none':'auto',
+          ...((!activeUrl)&&{opacity:0.4})
+        })}
+        {btn('disconnect', ()=>{sfAuth.disconnect();setConn(false);setStatus('idle');}, {background:'transparent',color:'#334155',padding:'5px 4px',fontWeight:400})}
+      </div>
+      {status==='error'&&<div style={{fontSize:11,color:'#f87171',marginTop:6}}>⚠️ {result?.error}</div>}
+
+      {status==='preview'&&result&&(
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:20}} onClick={e=>e.target===e.currentTarget&&setStatus('idle')}>
+          <div style={{background:'#1e293b',borderRadius:20,border:'1px solid #6366f1',padding:24,maxWidth:520,width:'100%',maxHeight:'88vh',overflowY:'auto',boxShadow:'0 30px 60px rgba(0,0,0,0.6)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
+              <div>
+                <div style={{fontSize:16,fontWeight:900,color:'#fff'}}>⚡ Salesforce Auto-fill</div>
+                <div style={{fontSize:11,color:'#64748b',marginTop:2}}>Select fields to import — existing values will be overwritten</div>
+              </div>
+              {btn('✕', ()=>setStatus('idle'), {background:'#334155',color:'#94a3b8',padding:'4px 10px'})}
+            </div>
+
+            <div style={{borderRadius:12,overflow:'hidden',border:'1px solid #334155',marginBottom:16}}>
+              {Object.entries(LABELS).filter(([k])=>result[k]&&(typeof result[k]==='string'?result[k].trim():true)).map(([k,label])=>(
+                <div key={k} style={{display:'flex',alignItems:'flex-start',gap:10,padding:'10px 14px',borderBottom:'1px solid #1e293b',background:sel[k]?'rgba(99,102,241,0.1)':'transparent',cursor:'pointer'}} onClick={()=>setSel(p=>({...p,[k]:!p[k]}))}>
+                  <div style={{width:16,height:16,borderRadius:4,flexShrink:0,marginTop:2,background:sel[k]?'#6366f1':'#334155',border:'1px solid '+(sel[k]?'#6366f1':'#475569'),display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:'#fff',fontWeight:900}}>{sel[k]&&'✓'}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:9,color:sel[k]?'#818cf8':'#475569',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:2}}>{label}</div>
+                    <div style={{fontSize:12,color:sel[k]?'#e2e8f0':'#64748b',whiteSpace:'pre-wrap',lineHeight:1.5,wordBreak:'break-word'}}>{result[k]||'—'}</div>
+                  </div>
+                </div>
+              ))}
+              {result.devices&&result.devices.length>0&&(
+                <div style={{display:'flex',alignItems:'flex-start',gap:10,padding:'10px 14px',background:sel.devices?'rgba(99,102,241,0.1)':'transparent',cursor:'pointer'}} onClick={()=>setSel(p=>({...p,devices:!p.devices}))}>
+                  <div style={{width:16,height:16,borderRadius:4,flexShrink:0,marginTop:2,background:sel.devices?'#6366f1':'#334155',border:'1px solid '+(sel.devices?'#6366f1':'#475569'),display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,color:'#fff',fontWeight:900}}>{sel.devices&&'✓'}</div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:9,color:sel.devices?'#818cf8':'#475569',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:2}}>Devices ({result.devices.length} line items from SF)</div>
+                    {result.devices.map((dv,i)=><div key={i} style={{fontSize:12,color:sel.devices?'#e2e8f0':'#64748b',lineHeight:1.6}}>{dv.type} <span style={{color:'#22d3ee',fontWeight:700}}>×{dv.qty}</span></div>)}
+                  </div>
+                </div>
+              )}
+              {Object.values({...LABELS,devices:'Devices'}).every((_,i)=>{
+                const k=Object.keys({...LABELS,devices:'Devices'})[i];
+                return !result[k]||(typeof result[k]==='string'?!result[k].trim():!(Array.isArray(result[k])&&result[k].length));
+              })&&<div style={{padding:'20px',textAlign:'center',color:'#475569',fontSize:12}}>No data found in this Opportunity</div>}
+            </div>
+
+            <div style={{background:'rgba(99,102,241,0.08)',border:'1px solid rgba(99,102,241,0.2)',borderRadius:10,padding:'8px 12px',marginBottom:14,fontSize:11,color:'#94a3b8'}}>
+              💡 <strong style={{color:'#a5b4fc'}}>Tip:</strong> Client Name, AE, POC, and Addresses come from standard SF fields. CSM + dates use{' '}
+              <code style={{background:'#0f172a',padding:'1px 4px',borderRadius:4,color:'#22d3ee',fontSize:10}}>CSM__r.Name</code>,{' '}
+              <code style={{background:'#0f172a',padding:'1px 4px',borderRadius:4,color:'#22d3ee',fontSize:10}}>Install_Date__c</code>, etc. —{' '}
+              customize field names in <code style={{background:'#0f172a',padding:'1px 4px',borderRadius:4,color:'#fbbf24',fontSize:10}}>index.html</code> if needed.
+            </div>
+
+            <div style={{display:'flex',gap:10}}>
+              <button onClick={doApply} style={{flex:1,background:'linear-gradient(135deg,#4f46e5,#7c3aed)',color:'#fff',border:'none',borderRadius:12,padding:'12px 0',fontSize:13,fontWeight:700,cursor:'pointer'}}>
+                ✅ Apply {Object.values(sel).filter(Boolean).length} Field{Object.values(sel).filter(Boolean).length!==1?'s':''}
+              </button>
+              {btn('Cancel', ()=>setStatus('idle'), {background:'#334155',color:'#94a3b8',borderRadius:12,padding:'12px 20px',fontSize:13,fontWeight:700})}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ─── PROJECT LIST ───
@@ -408,12 +976,31 @@ function ProjectDashboard({project,onSave,onBack,syncing}) {
           </div>
 
           {/* Salesforce + Next Milestone */}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginTop:12}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:12,marginTop:12}}>
             <div style={{background:"rgba(56,189,248,0.08)",borderRadius:10,padding:"10px 14px",border:"1px solid rgba(56,189,248,0.2)"}}>
               <div style={{fontSize:10,color:"#38bdf8",fontWeight:700,textTransform:"uppercase",marginBottom:4}}>☁️ Salesforce Opportunity</div>
-              {edit?<EI value={d.salesforceLink} onChange={s("salesforceLink")} style={{color:"#38bdf8",fontSize:13}} placeholder="Paste Salesforce URL..."/>
-                   :d.salesforceLink?<a href={d.salesforceLink} target="_blank" rel="noreferrer" style={{fontSize:13,color:"#38bdf8",textDecoration:"underline",fontWeight:600}}>Open in Salesforce ↗</a>
-                   :<div style={{fontSize:13,color:"#334155"}}>No link added</div>}
+              <div style={{marginBottom:4}}>
+                {edit
+                  ?<EI value={d.salesforceLink} onChange={s("salesforceLink")} style={{color:"#38bdf8",fontSize:13}} placeholder="Paste Salesforce Opportunity URL..."/>
+                  :d.salesforceLink
+                    ?<a href={d.salesforceLink} target="_blank" rel="noreferrer" style={{fontSize:13,color:"#38bdf8",textDecoration:"underline",fontWeight:600}}>Open in Salesforce ↗</a>
+                    :<div style={{fontSize:11,color:"#334155",fontStyle:"italic"}}>No link · paste below to auto-fill</div>
+                }
+              </div>
+              <SFAutoFill sfUrl={d.salesforceLink} onApply={fields=>{
+                setD(p=>{
+                  const u={...p,...fields};
+                  if(fields.devices&&fields.devices.length>0) u.devices=fields.devices;
+                  return u;
+                });
+              }}/>
+            </div>
+            <div style={{background:"rgba(34,211,238,0.06)",borderRadius:10,padding:"10px 14px",border:"1px solid rgba(34,211,238,0.2)"}}>
+              <div style={{fontSize:10,color:"#22d3ee",fontWeight:700,textTransform:"uppercase",marginBottom:4}}>📋 Smartsheet</div>
+              <div style={{fontSize:11,color:"#94a3b8",marginBottom:4}}>Pulls kickoff date, install date, go-live + ops fields</div>
+              <SmartsheetAutoFill clientName={d.clientName} onApply={fields=>{
+                setD(p=>({...p,...fields}));
+              }}/>
             </div>
             <div style={{background:"rgba(99,102,241,0.08)",borderRadius:10,padding:"10px 14px",border:"1px solid rgba(99,102,241,0.15)"}}>
               <div style={{fontSize:10,color:"#6366f1",fontWeight:700,textTransform:"uppercase",marginBottom:4}}>🎯 Next Milestone</div>
@@ -761,6 +1348,10 @@ function App() {
   useEffect(()=>{
     const init = async () => {
       setLoading(true);
+      // Handle Salesforce OAuth redirect (PKCE code exchange)
+      if (new URL(window.location.href).searchParams.has('code')) {
+        await sfAuth.handleCallback();
+      }
       try{ const c=localStorage.getItem("vs_projects"); if(c) setProjects(JSON.parse(c)); }catch(e){}
       let hashId=null;
       try{ const h=window.location.hash; if(h&&h.startsWith("#project-")) hashId=h.replace("#project-",""); }catch(e){}
