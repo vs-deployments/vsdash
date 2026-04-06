@@ -25,7 +25,7 @@ a{color:inherit;text-decoration:none}
 <script type="text/babel">
 const { useState, useEffect } = React;
 
-const SITE_URL = "YOUR_SITE_URL";
+const SITE_URL = "https://vs-deployments.github.io/vsdash/";
 const API_URL  = "YOUR_GOOGLE_APPS_SCRIPT_URL";
 const slugify  = s => s.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 const getUrl   = id => SITE_URL + "#project-" + id;
@@ -794,7 +794,7 @@ function ProjectDashboard({project,onSave,onBack,syncing}) {
   const [d,setD]   = useState(project);
   const [edit,setEdit] = useState(false);
   const [dtab,setDtab] = useState("shipping");
-  const [l3open,setL3open] = useState(false);
+  const [l3open,setL3open] = useState(true);
   const [linkCopied,setLinkCopied] = useState(false);
   const [newNote,setNewNote]     = useState("");
   const [newAuthor,setNewAuthor] = useState("");
@@ -1353,6 +1353,7 @@ function App() {
         setProjects(live);
         try{ localStorage.setItem("vs_projects",JSON.stringify(live)); }catch(e){}
         if(hashId&&live.find(p=>p.id===hashId)) setActiveId(hashId);
+      else if(live.length>0&&!hashId) setActiveId(live[0].id); // Demo: open first project automatically
       } else {
         try{ const c=localStorage.getItem("vs_projects"); if(c){ const list=JSON.parse(c); setProjects(list); if(hashId&&list.find(p=>p.id===hashId)) setActiveId(hashId); } }catch(e){}
       }
