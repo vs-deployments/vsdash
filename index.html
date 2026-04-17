@@ -162,7 +162,8 @@ const today    = () => new Date().toLocaleDateString("en-US",{month:"short",day:
 const api = {
   getAll: async () => { try { const r=await fetch(API_URL+"?action=getAll"); const j=await r.json(); return j.success?j.projects:[]; } catch(e){ return []; } },
   save:   async p  => { try { await fetch(API_URL+"?action=save&data="+encodeURIComponent(JSON.stringify(p))); return true; } catch(e){ return false; } },
-  del:    async id => { try { await fetch(API_URL+"?action=delete&id="+encodeURIComponent(id)); return true; } catch(e){ return false; } }
+  del:    async id => { try { await fetch(API_URL+"?action=delete&id="+encodeURIComponent(id)); return true; } catch(e){ return false; } },
+  slackNotify: async (type, data) => { try { await fetch(API_URL+"?action=slackNotify&type="+encodeURIComponent(type)+"&data="+encodeURIComponent(JSON.stringify(data))); } catch(e){ console.log("Slack notify error:",e); } }
 };
 
 const BLANK = (clientName="",siteName="",floorName="") => ({
@@ -1002,10 +1003,38 @@ function App() {
   };
 
   const saveProject = async updated => {
+    // Find the previous version to detect changes
+    const prev = projects.find(p=>p.id===updated.id);
+
     const list = projects.map(p=>p.id===updated.id?updated:p);
     setProjects(list);
     try{ localStorage.setItem("vs_projects",JSON.stringify(list)); }catch(e){}
     await api.save(updated);
+
+    // Slack notifications — fire on meaningful changes
+    if (prev) {
+      // Status change (Green/Yellow/Red)
+      if (prev.status !== updated.status) {
+        api.slackNotify("statusChange", {
+          id: updated.id, clientName: updated.clientName, siteName: updated.siteName,
+          oldStatus: prev.status, newStatus: updated.status, internalOwner: updated.internalOwner
+        });
+      }
+      // Blocker flagged (was N, now Y)
+      if (prev.blockerPresent !== "Y" && updated.blockerPresent === "Y") {
+        api.slackNotify("blocker", {
+          id: updated.id, clientName: updated.clientName, siteName: updated.siteName,
+          blockerText: updated.blockerText, blockerOwner: updated.blockerOwner, internalOwner: updated.internalOwner
+        });
+      }
+      // Phase change
+      if (prev.projectPhase !== updated.projectPhase) {
+        api.slackNotify("phaseChange", {
+          id: updated.id, clientName: updated.clientName, siteName: updated.siteName,
+          oldPhase: prev.projectPhase, newPhase: updated.projectPhase, internalOwner: updated.internalOwner
+        });
+      }
+    }
   };
 
   const deleteProject = async id => {
